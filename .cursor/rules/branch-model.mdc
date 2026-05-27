@@ -1,0 +1,30 @@
+---
+description: This repo uses exactly two long-lived branches — `development` and `main`. Do not create feature branches.
+globs: ["**/*"]
+alwaysApply: true
+---
+
+# Branch model — two branches only
+
+## Rule
+
+This repository uses **exactly two long-lived branches**:
+
+- **`development`** — integration / staging. **All commits land here directly.** Pushes auto-deploy to the dev AWS environment.
+- **`main`** — production. Updated **only** by merging the OPEN Release PR `development -> main`.
+
+Do **not**:
+
+- Propose creating `feat/...`, `fix/...`, `chore/...` branches as part of the normal workflow.
+- Open PRs from anywhere into `main` other than the single Release PR from `development`.
+- Recommend GitFlow or any multi-branch model.
+
+Do:
+
+- Commit directly to `development` (after running local tests + lint).
+- Reference the **Release PR (`development -> main`)** as the OPEN PR that carries the AI workflow story for the assessment.
+- If a single change is risky enough to warrant CI gating before landing, open a small ad-hoc PR into `development` and self-merge after CI passes — this is the exception, not the default.
+
+## Why
+
+The user has explicitly chosen a minimal 2-branch model (see `DECISIONS.md` ADR-006). Adding feature branches contradicts that decision and adds Git overhead that this small, one-person project does not need. The single OPEN Release PR is also where the AI iteration narrative lives for the assessment.

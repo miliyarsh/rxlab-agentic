@@ -1,0 +1,15 @@
+# CODEOWNERS — placeholder
+#
+# Until the repo owner's GitHub handle is committed, this file just claims
+# everything for whoever opens PRs. Replace `@OWNER` with the real handle
+# (e.g. `@iliyars`) in Phase 4.
+
+*       @OWNER
+
+# Critical surfaces — keep human review even after teams are added.
+/infra/                 @OWNER
+/.github/workflows/     @OWNER
+CLAUDE.md               @OWNER
+AGENTS.md               @OWNER
+DECISIONS.md            @OWNER
+PLAN.md                 @OWNER

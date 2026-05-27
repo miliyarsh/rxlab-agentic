@@ -1,0 +1,36 @@
+---
+description: Every Python function, every Lambda boundary, and every Bedrock output must be typed and validated.
+globs: ["service/**/*.py"]
+alwaysApply: true
+---
+
+# Always typed
+
+## Rule
+
+- All Python code in `service/` is type-annotated. `mypy --strict` (or equivalent) must pass.
+- All request/response payloads use `pydantic` v2 models. No raw `dict[str, Any]` at the API boundary or between agents.
+- Every Bedrock invocation's output is parsed with `Model.model_validate(...)` against a pydantic schema **before** anything is persisted.
+- `Any` is allowed only with a comment explaining why; otherwise prefer `object` + narrowing, or a precise union.
+
+## Pattern
+
+```python
+from pydantic import BaseModel, Field
+
+class SubmitJobRequest(BaseModel):
+    sample_id: str = Field(min_length=1, max_length=64)
+    vcf_url: str = Field(pattern=r"^s3://[^/]+/.+$")
+
+class SubmitJobResponse(BaseModel):
+    job_id: str
+    status: str  # always "pending" here
+
+def handler(event: dict, context: object) -> dict:
+    body = SubmitJobRequest.model_validate_json(event["body"])
+    ...
+```
+
+## Why
+
+Typed schemas are the single most effective error-catching mechanism for serverless code. They also produce free OpenAPI docs and free Bedrock-output validation.

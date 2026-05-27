@@ -1,0 +1,33 @@
+---
+description: All logs are structured JSON via the shared logger. Never log PHI.
+globs: ["service/**/*.py"]
+alwaysApply: true
+---
+
+# JSON logs only
+
+## Rule
+
+- Use the shared logger at `service/common/logging.py`. Do **not** call `print()` and do **not** instantiate a bare `logging.Logger` per module.
+- Every log line is a single JSON object with at least: `timestamp`, `level`, `message`, `correlation_id`, `job_id` (where applicable), `agent`, `step`.
+- **Never log PHI.** Patient narrative, raw genotype, raw VCF content, and full Bedrock prompt/response bodies are forbidden in logs. Log structural fields and counts only.
+- Errors include `error_class`, `error_message`, and a stable `error_code` (e.g. `INVALID_VCF_SCHEMA`).
+
+## Pattern
+
+```python
+from service.common.logging import get_logger
+
+log = get_logger(__name__)
+
+def handler(event, context):
+    correlation_id = event.get("correlation_id")
+    log.info(
+        "intake.started",
+        extra={"correlation_id": correlation_id, "job_id": event["job_id"], "agent": "intake"},
+    )
+```
+
+## Why
+
+CloudWatch Logs Insights queries depend on consistent field names. Plain-text logs are unsearchable; PHI in logs is a HIPAA red flag.

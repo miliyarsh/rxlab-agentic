@@ -1,0 +1,38 @@
+---
+description: Bedrock calls are scoped, capped, schema-validated, and feature-flagged. Only summarizer + critic may call Bedrock.
+globs: ["service/agents/summarizer/**/*.py", "service/agents/critic/**/*.py", "infra/**/*.tf"]
+alwaysApply: true
+---
+
+# Bedrock safety
+
+## Rule
+
+- **Only two Lambdas may call Bedrock**: `service/agents/summarizer` and `service/agents/critic`. No other module imports `boto3.client("bedrock-runtime")`.
+- IAM for each role is scoped to **exactly one model ARN family**: `arn:aws:bedrock:<region>::foundation-model/anthropic.claude-3-haiku-*`. Never `bedrock:*` or `Resource: *`.
+- The model id is read from SSM at `/rxlab/<env>/bedrock/model_id` at runtime. Not hardcoded.
+- A hard token cap is set on every call (`max_tokens=512` for summarizer; tighter for critic). Temperature pinned (`0.2`). JSON-mode (or equivalent) required.
+- The model output is parsed and validated against a pydantic schema (`SummarizerOutput`, `CriticVerdict`) **before** any persistence.
+- The feature flag `/rxlab/<env>/feature_flags/bedrock_enabled` is the off-switch. When `false`, both agents short-circuit to a deterministic stub that returns a clean refusal — never raises an unhandled exception.
+- Per-job token usage is recorded in the `audit` DynamoDB table along with `correlation_id` and `latency_ms`.
+
+## Pattern (Critic)
+
+```python
+ssm = boto3.client("ssm")
+model_id = ssm.get_parameter(Name=f"/rxlab/{env}/bedrock/model_id")["Parameter"]["Value"]
+enabled  = ssm.get_parameter(Name=f"/rxlab/{env}/feature_flags/bedrock_enabled")["Parameter"]["Value"] == "true"
+
+if not enabled:
+    return CriticVerdict(verdict="reject", reasons=["bedrock_disabled"], notes="feature flag off").model_dump()
+
+resp = bedrock.invoke_model(
+    modelId=model_id,
+    body=json.dumps({"max_tokens": 256, "temperature": 0.2, "messages": [...]}),
+)
+verdict = CriticVerdict.model_validate_json(resp["body"].read())
+```
+
+## Why
+
+The whole "Show off AI maturity" rubric line hinges on demonstrating *safe* Bedrock usage. Wildcard ARNs, missing token caps, or unvalidated outputs would defeat the point.
