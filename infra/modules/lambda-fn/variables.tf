@@ -13,8 +13,8 @@ variable "handler" {
   type        = string
 
   validation {
-    condition     = can(regex("^[a-zA-Z_][a-zA-Z0-9_]*\\.[a-zA-Z_][a-zA-Z0-9_]*$", var.handler))
-    error_message = "handler must look like `module.attribute` (alphanumeric/underscore identifiers)."
+    condition     = can(regex("^[a-zA-Z_][a-zA-Z0-9_]*(\\.[a-zA-Z_][a-zA-Z0-9_]*)+$", var.handler))
+    error_message = "handler must look like `package.module.handler` (dot-separated identifiers)."
   }
 }
 
