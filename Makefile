@@ -66,7 +66,7 @@ test-integration:
 
 .PHONY: test-contract
 test-contract:
-	@echo "[stub] make test-contract — deployed-API tests land in C8."
+	$(PYTEST) -m contract
 
 .PHONY: cov
 cov:
@@ -76,35 +76,36 @@ cov:
 
 .PHONY: tf-fmt
 tf-fmt:
-	@echo "[stub] terraform fmt -recursive infra/  (Phase 1+)"
+	terraform fmt -recursive infra/
 
 .PHONY: tf-validate
 tf-validate:
-	@echo "[stub] terraform validate in $(TF_DEV) and $(TF_PROD)  (Phase 1+)"
+	cd $(TF_DEV) && terraform init -backend=false -input=false && terraform validate
+	cd $(TF_PROD) && terraform init -backend=false -input=false && terraform validate
 
 .PHONY: tflint
 tflint:
-	@echo "[stub] tflint --recursive infra/  (Phase 1+)"
+	@echo "[stub] tflint --recursive infra/  (install tflint to enable)"
 
 .PHONY: tfsec
 tfsec:
-	@echo "[stub] tfsec infra/  (Phase 1+)"
+	@echo "[stub] tfsec infra/  (install tfsec to enable)"
 
 .PHONY: checkov
 checkov:
-	@echo "[stub] checkov -d infra/  (Phase 1+)"
+	@echo "[stub] checkov -d infra/  (install checkov to enable)"
 
 .PHONY: plan-dev
 plan-dev:
-	@echo "[stub] terraform plan in $(TF_DEV)  (Phase 1+)"
+	cd $(TF_DEV) && terraform plan
 
 .PHONY: plan-prod
 plan-prod:
-	@echo "[stub] terraform plan in $(TF_PROD)  (Phase 1+)"
+	cd $(TF_PROD) && terraform plan
 
 .PHONY: apply-dev
 apply-dev:
-	@echo "[stub] terraform apply in $(TF_DEV)  (Phase 2+)"
+	cd $(TF_DEV) && terraform apply
 
 # --- Lifecycle ---
 

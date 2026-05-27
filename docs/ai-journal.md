@@ -68,3 +68,18 @@ The Release PR (`development -> main`) references this file in its description a
 2. The whole point of `.cursor/rules/bedrock-safety.mdc` is to keep the model pinned for cost + behaviour stability. A wildcard would silently swap in a more expensive model when AWS released `v2`.
 3. `.cursor/rules/no-wildcard-iam.mdc` is non-negotiable. The slight ergonomics cost is offset by `lambda-fn` and `lambda-container` already exposing `function_arn` outputs, so the env stack composes the list naturally.
 **Follow-up:** All 10 modules pass `terraform fmt -recursive` and `terraform init -backend=false && terraform validate` (Terraform v1.15.4, AWS provider v6.46.0). Additionally tightened `lambda-fn` / `lambda-container` with a local-computed wildcard check on `var.iam_policy_statements` that surfaces the rule violation as a `precondition` error message that points directly at the offending cursor rule. Also fixed `.github/dependabot.yml` (pip directory `/service` → `/`) to match the root `pyproject.toml` decision from C1.
+
+### 2026-05-27 — C5–C8: dev env stacks, API, deterministic agents, SFN pipeline
+
+**Context:** Wire `infra/envs/{dev,prod}` to the module library (C5), ship four REST handlers (C6), implement Intake/Analyzer/FHIR Composer (C7), and orchestrate the three-agent Express workflow (C8).
+**AI tool & prompt:** Cursor, asked to implement C5–C8 on `development` following `08-CODEBASE-WRITING-PLAN.md`, `AGENTS.md`, and the no-wildcard-IAM posture.
+**AI proposal:**
+1. Split the Python Lambda zip `source_dir` per handler (`service/api/submit_job/` only) and vend `service.common` as a Lambda layer.
+2. Give Intake `s3:GetObject` on `*` so any customer VCF bucket works without extra Terraform.
+3. Model the Step Functions ASL with `lambda:invoke` integration resources instead of direct Lambda ARNs.
+**Decision:**
+1. **Rejected** the per-handler zip split. Every zip/container Lambda uses `source_dir = ../../../service` with handlers referenced as `api.submit_job.handler.handler` / `agents.intake.handler.handler`. One packaging path, one import graph, matches the root `pyproject.toml` layout from C1.
+2. **Rejected** wildcard S3 on Intake. IAM is scoped to the environment reports bucket ARN (`${module.reports_bucket.bucket_arn}/*`). Demo/contract VCF objects are uploaded under that bucket; cross-account VCF URLs fail with `UNREACHABLE_VCF` by design.
+3. **Rejected** `lambda:invoke` ASL for the MVP. The template uses direct Lambda ARNs (`Resource = "${intake_lambda_arn}"`) which is the simplest Express integration and matches the module's ARN-scoped IAM policy.
+**Reason:** (1) avoids a layer + packaging matrix before CI exists; (2) preserves least privilege; (3) keeps the SFN definition readable and aligned with the module's `lambda_arns` validation list.
+**Follow-up:** `infra/envs/dev|prod` stacks, `pipeline.asl.json.tpl`, `service/api/*`, `service/agents/{intake,analyzer,fhir_composer}`, `service/common/{api_gateway,dynamodb_store,pipeline}.py`, unit/integration/contract tests, updated `docs/fhir-mapping.md`, `diagrams/agent-state-machine.drawio.xml`, and real `Makefile` terraform targets.
