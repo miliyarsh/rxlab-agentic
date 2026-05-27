@@ -1,8 +1,9 @@
 version: 2
 updates:
-  # Python service deps (pyproject.toml lands in Phase 2).
+  # Python service deps. `pyproject.toml` lives at the repo root and owns
+  # the `service` package; dependabot must scan `/`, not `/service`.
   - package-ecosystem: "pip"
-    directory: "/service"
+    directory: "/"
     schedule:
       interval: "weekly"
     target-branch: "development"
