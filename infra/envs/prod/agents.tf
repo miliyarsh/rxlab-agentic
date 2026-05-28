@@ -55,7 +55,7 @@ module "agent_analyzer" {
 
   function_name       = "${local.name_prefix}-analyzer"
   ecr_repository_name = "${local.name_prefix}-analyzer"
-  image_tag           = "latest"
+  image_tag           = var.analyzer_image_tag
   kms_key_arn         = module.kms.key_arn
   timeout_seconds     = 120
   memory_size         = 1024

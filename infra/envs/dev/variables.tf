@@ -57,3 +57,26 @@ variable "presigned_url_ttl_seconds" {
   type        = number
   default     = 900
 }
+
+variable "bedrock_enabled" {
+  description = "When false, summarizer/critic use deterministic stubs (SSM mirror)."
+  type        = bool
+  default     = true
+}
+
+variable "monthly_budget_usd" {
+  description = "Monthly AWS cost budget alert threshold (USD)."
+  type        = number
+  default     = 10
+
+  validation {
+    condition     = var.monthly_budget_usd >= 1 && var.monthly_budget_usd <= 100
+    error_message = "monthly_budget_usd must be 1..100."
+  }
+}
+
+variable "analyzer_image_tag" {
+  description = "Immutable ECR tag for the Analyzer container image (CI passes git SHA)."
+  type        = string
+  default     = "bootstrap"
+}

@@ -18,7 +18,10 @@ locals {
 
   has_wildcard_resource = anytrue([
     for s in var.iam_policy_statements :
-    anytrue([for r in s.resources : r == "*"])
+    anytrue([
+      for r in s.resources :
+      r == "*" && !alltrue([for a in s.actions : a == "cloudwatch:PutMetricData"])
+    ])
   ])
 }
 

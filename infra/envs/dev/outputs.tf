@@ -43,6 +43,16 @@ output "api_url" {
   value       = module.api.api_endpoint
 }
 
+output "api_endpoint" {
+  description = "Alias for api_url (backward compatibility)."
+  value       = module.api.api_endpoint
+}
+
+output "analyzer_ecr_repository_url" {
+  description = "ECR repository URL for the Analyzer container (CI pushes here)."
+  value       = module.agent_analyzer.ecr_repository_url
+}
+
 output "state_machine_arn" {
   description = "Step Functions pipeline state machine ARN."
   value       = module.pipeline.state_machine_arn
