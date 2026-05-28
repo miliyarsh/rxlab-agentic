@@ -157,6 +157,8 @@ module "api" {
   api_name    = "${local.name_prefix}-api"
   kms_key_arn = module.kms.key_arn
 
+  cors_allow_origins = var.cors_allow_origins
+
   routes = {
     "POST /jobs" = {
       lambda_arn           = module.api_submit_job.function_arn

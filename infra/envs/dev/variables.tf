@@ -80,3 +80,9 @@ variable "analyzer_image_tag" {
   type        = string
   default     = "bootstrap"
 }
+
+variable "cors_allow_origins" {
+  description = "Browser origins allowed to call the HTTP API (frontend local + Vercel)."
+  type        = list(string)
+  default     = ["http://localhost:5173"]
+}
