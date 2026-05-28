@@ -17,43 +17,59 @@ This is an AWS-native, Terraform-deployed, GitHub Actions-CI/CD'd multi-agent se
 | API | API Gateway HTTP API (4 endpoints) |
 | Languages | Python (service) + Terraform (infra) + YAML (CI) |
 | CI/CD | GitHub Actions with OIDC (no long-lived AWS keys) |
-| **Branch model** | **2 long-lived branches only: `development` + `main`** |
+| **Branch model** | **2 long-lived branches: `development` + `main`** |
+| **Environment model** | **1 AWS stack — both branches deploy to `infra/envs/dev`** |
 
 ## Branch & release model (read this first)
 
-This project uses **only two long-lived branches**:
+This project uses **two long-lived branches** and **one AWS environment**:
 
-- **`development`** — integration / staging. **All commits land here directly.** Pushes auto-deploy to the dev AWS environment (once Phase 4 CI is in place).
-- **`main`** — production. Updated only by merging the **Release PR** `development -> main`.
+- **`development`** — integration. **All commits land here directly.** Pushes auto-deploy to the **single** AWS stack (`infra/envs/dev`).
+- **`main`** — release marker. Updated only by merging the **Release PR** `development -> main`. The merge **re-deploys to the same stack** so the release flow is proven end-to-end without doubling AWS cost.
 
 There are **no short-lived feature branches** for normal work. If you want to gate a single risky change with CI, you may open an optional ad-hoc PR into `development`, but the default flow is to commit and push directly.
 
-The **Release PR (`development -> main`) is intentionally left OPEN at submission** to satisfy the assessment's "leave at least one PR open showing AI-assisted development" requirement. Its description carries the AI workflow story; merging it (post-interview) triggers the env-protected production deploy.
+The Release PR (`development -> main`) carries the AI workflow story (see `docs/ai-journal.md`) and demonstrates a real promotion flow. See [ADR-010](DECISIONS.md) for why we run one environment instead of dev+prod.
 
 ```mermaid
 flowchart LR
-  Dev[development<br/>all commits land here]
-  Main[main = production]
-  Dev ==>|Release PR<br/>development -> main<br/>OPEN at submission| Main
+  Dev[development<br/>commits land here<br/>push -> CD deploy]
+  Main[main<br/>release marker<br/>merge -> CD re-deploy]
+  Stack[(AWS stack:<br/>infra/envs/dev<br/>SINGLE environment)]
+  Dev ==>|Release PR| Main
+  Dev -. deploy .-> Stack
+  Main -. deploy .-> Stack
 ```
+
+### How to test the Release PR flow
+
+1. Land any meaningful change on `development` (e.g. a docs/release-notes commit).
+2. Wait for CI on `development` to go green (Actions tab).
+3. Open PR: **`development` -> `main`** with the Release PR template body.
+4. Wait for PR-level CI (CI — Service, CI — Terraform, CI — Terraform Plan).
+5. **Merge** the PR.
+6. Watch **CD — Deploy** on `main` in the Actions tab. It should reuse the existing stack (`infra/envs/dev`) and post an API URL in the run summary.
+7. Smoke-test: `bash scripts/demo.sh`.
+
+> An "empty commit" PR works mechanically but is weak for assessment; prefer a small real change (release notes, version bump, doc polish).
 
 ## Deploy / demo / teardown
 
 ```bash
-# One-time remote state bootstrap (see project-overview/06-AWS-GITHUB-SETUP.md):
+# One-time remote state bootstrap (also writes infra/envs/dev/backend.hcl):
 bash scripts/bootstrap.sh
 
-# Apply dev stack:
-cd infra/envs/dev && terraform init && terraform apply
+# Apply the single stack:
+cd infra/envs/dev && terraform init -backend-config=backend.hcl && terraform apply
 
 # First deploy: push Analyzer image before Lambda can start:
 make push-analyzer IMAGE_TAG=bootstrap
 
-# Live end-to-end demo against the dev environment:
+# Live end-to-end demo:
 export API_URL="$(terraform -chdir=infra/envs/dev output -raw api_url)"
 bash scripts/demo.sh
 
-# Tear dev stack down (keeps remote state bucket):
+# Tear the stack down (keeps remote state bucket):
 bash scripts/teardown.sh
 ```
 
@@ -90,7 +106,7 @@ rxlab-agentic/
     canary/                  # scheduled health-check Lambda
     tests/{unit,integration,contract}
   infra/                     # Terraform (Phase 1+)
-    envs/{dev,prod}
+    envs/dev                 # SINGLE environment (both branches deploy here)
     modules/{kms-key, s3-bucket-secure, dynamodb-table, lambda-fn, lambda-container,
              api-gateway-http, step-functions-pipeline, sns-alerts, bedrock-access,
              observability}
@@ -98,7 +114,6 @@ rxlab-agentic/
   scripts/                   # bootstrap.sh, demo.sh, teardown.sh
   diagrams/                  # architecture + state-machine drawio
   docs/                      # ai-journal, api, fhir-mapping, baseline prep
-  .cursor/rules/             # Cursor coding rules (no-wildcard-iam, always-typed, …)
 ```
 
 ## Prerequisites (for the developer building this)

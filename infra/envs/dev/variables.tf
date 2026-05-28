@@ -1,11 +1,11 @@
 variable "environment" {
-  description = "Deployment environment name."
+  description = "Deployment environment name. This repo intentionally has ONE environment."
   type        = string
   default     = "dev"
 
   validation {
     condition     = var.environment == "dev"
-    error_message = "This stack is the dev environment; use infra/envs/prod for production."
+    error_message = "Single-environment model: this stack is always 'dev'. See infra/envs/dev/README.md."
   }
 }
 

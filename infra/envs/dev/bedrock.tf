@@ -156,8 +156,8 @@ module "alerts" {
   count  = var.alert_email == "" ? 0 : 1
   source = "../../modules/sns-alerts"
 
-  topic_name  = "${local.name_prefix}-alerts"
-  kms_key_arn = module.kms.key_arn
+  topic_name        = "${local.name_prefix}-alerts"
+  kms_key_arn       = module.kms.key_arn
   email_subscribers = [var.alert_email]
 }
 

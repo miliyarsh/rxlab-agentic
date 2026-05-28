@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# Bootstrap remote Terraform state (run once per AWS account).
+# Bootstrap remote Terraform state for the SINGLE RxLab environment.
+# Run once per AWS account. Idempotent.
 set -euo pipefail
 
 REGION="${AWS_REGION:-us-east-1}"
 ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
 BUCKET="rxlab-tfstate-${ACCOUNT_ID}-${REGION}"
 TABLE="rxlab-terraform-locks"
+ENV_DIR="infra/envs/dev"
 
-echo "Region: ${REGION}"
-echo "State bucket: ${BUCKET}"
-echo "Lock table: ${TABLE}"
+echo "Region:         ${REGION}"
+echo "Account:        ${ACCOUNT_ID}"
+echo "State bucket:   ${BUCKET}"
+echo "Lock table:     ${TABLE}"
+echo "Env directory:  ${ENV_DIR}"
 
 if aws s3api head-bucket --bucket "${BUCKET}" 2>/dev/null; then
   echo "Bucket ${BUCKET} already exists — skipping create."
@@ -46,12 +50,38 @@ else
   echo "Created ${TABLE}."
 fi
 
+# Generate backend.hcl from the template so `terraform init` works locally
+# without manual copying.
+BACKEND_FILE="${ENV_DIR}/backend.hcl"
+if [[ ! -f "${BACKEND_FILE}" ]]; then
+  cat > "${BACKEND_FILE}" <<EOF
+bucket         = "${BUCKET}"
+key            = "envs/dev/terraform.tfstate"
+region         = "${REGION}"
+dynamodb_table = "${TABLE}"
+encrypt        = true
+EOF
+  echo "Wrote ${BACKEND_FILE} (gitignored)."
+else
+  echo "${BACKEND_FILE} already exists — left untouched."
+fi
+
 cat <<EOF
 
-Next steps:
-1. Copy infra/envs/dev/backend.hcl.example -> backend.hcl and replace ACCOUNT_ID with ${ACCOUNT_ID}.
-2. cd infra/envs/dev && terraform init -backend-config=backend.hcl && terraform apply
-3. Build and push the Analyzer image (see scripts/push_analyzer_image.sh).
-4. Configure GitHub OIDC role + secrets (see project-overview/06-AWS-GITHUB-SETUP.md).
+Bootstrap complete. Next steps:
+
+  1. cd ${ENV_DIR} && terraform init -backend-config=backend.hcl && terraform apply
+  2. Build/push the Analyzer image: make push-analyzer IMAGE_TAG=bootstrap
+  3. Configure GitHub OIDC role + repo variables (TF_STATE_BUCKET, TF_LOCK_TABLE):
+     see project-overview/06-AWS-GITHUB-SETUP.md
+  4. Enable commit hooks (strips AI co-author trailers):
+     git config core.hooksPath .githooks
+  5. Push to 'development' (auto-deploys) and open the Release PR development -> main.
+
+GitHub Actions repository variables to set now:
+
+  TF_STATE_BUCKET=${BUCKET}
+  TF_LOCK_TABLE=${TABLE}
+  AWS_REGION=${REGION}
 
 EOF

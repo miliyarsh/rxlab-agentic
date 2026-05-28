@@ -1,5 +1,8 @@
 name: CI — Terraform
 
+# Single-environment model: this repo has exactly one Terraform stack at
+# `infra/envs/dev`. Both `development` and `main` deploy to it.
+
 on:
   push:
     branches: [development, main]
@@ -18,9 +21,8 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        env_dir: [infra/envs/dev, infra/envs/prod]
+    env:
+      TF_ENV: infra/envs/dev
     steps:
       - uses: actions/checkout@v4
 
@@ -31,8 +33,8 @@ jobs:
       - name: Terraform fmt
         run: terraform fmt -check -recursive infra/
 
-      - name: Terraform init + validate (${{ matrix.env_dir }})
-        working-directory: ${{ matrix.env_dir }}
+      - name: Terraform init + validate (${{ env.TF_ENV }})
+        working-directory: ${{ env.TF_ENV }}
         run: |
           terraform init -backend=false -input=false
           terraform validate

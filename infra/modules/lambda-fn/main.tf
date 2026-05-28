@@ -162,11 +162,11 @@ resource "aws_lambda_function" "this" {
   lifecycle {
     precondition {
       condition     = !local.has_wildcard_action
-      error_message = "IAM policy statements must not use wildcard actions ('*' or 'service:*'). See .cursor/rules/no-wildcard-iam.mdc."
+      error_message = "IAM policy statements must not use wildcard actions ('*' or 'service:*'). See CLAUDE.md hard rules."
     }
     precondition {
       condition     = !local.has_wildcard_resource
-      error_message = "IAM policy statements must not use wildcard resources ('*'). See .cursor/rules/no-wildcard-iam.mdc."
+      error_message = "IAM policy statements must not use wildcard resources ('*'). See CLAUDE.md hard rules."
     }
     postcondition {
       condition     = self.tracing_config[0].mode == "Active"

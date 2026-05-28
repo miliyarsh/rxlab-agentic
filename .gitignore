@@ -71,7 +71,6 @@ desktop.ini
 
 # Local Terraform backend config (copy from backend.hcl.example)
 infra/envs/dev/backend.hcl
-infra/envs/prod/backend.hcl
 
 # Generated diagrams (commit .drawio.xml + .png; ignore tool exports)
 diagrams/*.tmp

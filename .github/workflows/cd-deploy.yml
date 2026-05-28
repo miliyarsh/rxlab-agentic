@@ -1,5 +1,11 @@
 name: CD — Deploy
 
+# Single-environment model: both `development` (integration) and `main`
+# (release) deploy to the SAME AWS stack at `infra/envs/dev`.
+# Merging the Release PR `development -> main` therefore reuses the existing
+# stack and proves the release flow end-to-end without spinning up a second
+# environment.
+
 on:
   push:
     branches: [development, main]
@@ -8,25 +14,40 @@ on:
       - "infra/**"
       - "pyproject.toml"
       - ".github/workflows/cd-deploy.yml"
+  workflow_dispatch: {}
 
 permissions:
   id-token: write
   contents: read
 
 concurrency:
-  group: deploy-${{ github.ref_name }}
+  # Serialize deploys against the single stack regardless of source branch.
+  group: deploy-rxlab-dev
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+    # One GitHub Environment for the one AWS stack. If you later want a
+    # manual approval gate on Release-PR merges, add `required reviewers`
+    # to this environment in GitHub settings.
+    environment: dev
     env:
-      TF_ENV: ${{ github.ref_name == 'main' && 'infra/envs/prod' || 'infra/envs/dev' }}
+      TF_ENV: infra/envs/dev
       IMAGE_TAG: ${{ github.sha }}
       AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+      TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+      TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE || 'rxlab-terraform-locks' }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Validate required GitHub variables
+        run: |
+          if [[ -z "${TF_STATE_BUCKET}" ]]; then
+            echo "::error::Repository variable TF_STATE_BUCKET is not set." \
+                 "See project-overview/06-AWS-GITHUB-SETUP.md."
+            exit 1
+          fi
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -37,9 +58,15 @@ jobs:
         with:
           terraform_version: "1.7.5"
 
-      - name: Terraform init
+      - name: Terraform init (remote S3 backend)
         working-directory: ${{ env.TF_ENV }}
-        run: terraform init -input=false
+        run: |
+          terraform init -input=false \
+            -backend-config="bucket=${TF_STATE_BUCKET}" \
+            -backend-config="key=envs/dev/terraform.tfstate" \
+            -backend-config="region=${AWS_REGION}" \
+            -backend-config="dynamodb_table=${TF_LOCK_TABLE}" \
+            -backend-config="encrypt=true"
 
       - name: Ensure Analyzer ECR repository exists
         working-directory: ${{ env.TF_ENV }}
@@ -71,3 +98,14 @@ jobs:
           export API_URL="$(terraform -chdir="${TF_ENV}" output -raw api_url)"
           export CONTRACT_VCF_URL="s3://$(terraform -chdir="${TF_ENV}" output -raw reports_bucket_name)/samples/sample.vcf"
           pytest -m contract -v --maxfail=1
+
+      - name: Deploy summary
+        if: always()
+        run: |
+          echo "### Deploy summary" >> "${GITHUB_STEP_SUMMARY}"
+          echo "" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- **Branch:** \`${GITHUB_REF_NAME}\`" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- **Stack:** \`${TF_ENV}\` (single environment)" >> "${GITHUB_STEP_SUMMARY}"
+          echo "- **Image tag:** \`${IMAGE_TAG}\`" >> "${GITHUB_STEP_SUMMARY}"
+          API_URL="$(terraform -chdir="${TF_ENV}" output -raw api_url 2>/dev/null || echo 'unavailable')"
+          echo "- **API URL:** ${API_URL}" >> "${GITHUB_STEP_SUMMARY}"

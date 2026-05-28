@@ -46,9 +46,9 @@ This file collects the key design decisions made on the RxLab Agentic project. E
 
 ## ADR-006 — Branch & release model: 2 long-lived branches only
 
-**Status:** Accepted.
-**Context:** The take-home asks for clean Git practices, CI/CD, and at least one OPEN PR showing AI-assisted development.
-**Decision:** Use **only two long-lived branches** — `development` (integration) and `main` (production). All commits land directly on `development`; pushes auto-deploy to the dev AWS environment. A single **Release PR** `development -> main` is opened when the dev environment is verified, left **OPEN at submission** with the AI workflow story in its description, and merged after assessment review to trigger the env-protected production deploy.
+**Status:** Accepted (superseded in part by ADR-010 for environment count).
+**Context:** The take-home asks for clean Git practices, CI/CD, and at least one PR showing AI-assisted development.
+**Decision:** Use **only two long-lived branches** — `development` (integration) and `main` (release marker). All commits land directly on `development`; pushes auto-deploy to the single AWS environment (`infra/envs/dev` — see ADR-010). A **Release PR** `development -> main` carries the AI workflow story in its description; merging it re-applies the **same** stack via `cd-deploy.yml`, proving the promotion flow end-to-end without a second environment.
 **Consequences:**
 - Minimal Git overhead — no per-feature branch ceremony.
 - One PR concept (the Release PR) carries both the prod-promotion story and the AI workflow story.
@@ -81,6 +81,21 @@ This file collects the key design decisions made on the RxLab Agentic project. E
 **Decision:** Reusable `observability` module (dashboard + alarms → SNS when `alert_email` set), X-Ray on all Lambdas, EventBridge `rate(5 minutes)` → healthz canary emitting `RxLab/Canary/HealthzSuccess`.
 **Consequences:** Alarms/dashboards are conditional on alert email to keep zero-config dev stacks valid; canary uses documented `PutMetricData` wildcard exception.
 **Alternatives:** Third-party APM (rejected: scope/cost for take-home).
+
+## ADR-010 — Single AWS environment (one stack for both branches)
+
+**Status:** Accepted.
+**Context:** The original plan mapped `development -> infra/envs/dev` and `main -> infra/envs/prod` (two parallel AWS stacks). For a one-person take-home running near $0, paying for two stacks (two API Gateways, two pipelines, two dashboards, two state files, etc.) doubles cost and operational overhead without doubling assessment signal.
+**Decision:** Run **exactly one** AWS environment (`infra/envs/dev`). Both `development` (auto-deploy on push) and `main` (deploy on Release-PR merge) target the **same** stack. The `infra/envs/prod/` directory has been removed; only `infra/envs/dev/` remains. CI matrices and the CD workflow are simplified accordingly. A GitHub Environment named `dev` provides a single (optional) approval gate.
+**Consequences:**
+- Lower cost — one stack instead of two.
+- The Release PR merge into `main` re-applies Terraform to the same stack, so the promotion flow is still exercised end-to-end (CI green -> merge -> CD apply -> demo green) without spinning up a duplicate environment.
+- We lose the ability to "test in dev, then promote to prod with separate state" — accepted because the take-home is short-lived and the test surface (4 endpoints, 5 agents) is fully covered by the single stack.
+- The Bedrock Critic guardrails, audit log, and Step Functions DLQs provide the safety net that a separate prod env would otherwise gate.
+**Alternatives:**
+- **Two stacks (`dev` + `prod`)** — original design; rejected on cost/overhead for take-home scope.
+- **Workspaces (`terraform workspace`)** — rejected: workspaces complicate state and don't give a meaningful isolation boundary for this size.
+- **Branch-conditional env name** (one stack but named `prod` on `main`) — rejected: changing `var.environment` between deploys would rename every resource and cause destroy/create churn.
 
 ---
 

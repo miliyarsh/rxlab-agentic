@@ -7,8 +7,7 @@ PIP     ?= $(PYTHON) -m pip
 PYTEST  ?= $(PYTHON) -m pytest
 RUFF    ?= $(PYTHON) -m ruff
 MYPY    ?= $(PYTHON) -m mypy
-TF_DEV  := infra/envs/dev
-TF_PROD := infra/envs/prod
+TF_ENV  := infra/envs/dev
 
 .PHONY: help
 help:
@@ -24,14 +23,13 @@ help:
 	@echo "    make cov            Run unit suite with coverage report"
 	@echo ""
 	@echo "  Terraform:"
-	@echo "    make tf-fmt         terraform fmt -recursive infra/ (Phase 1+)"
-	@echo "    make tf-validate    terraform validate in each env (Phase 1+)"
-	@echo "    make tflint         tflint --recursive infra/ (Phase 1+)"
-	@echo "    make tfsec          tfsec infra/ (Phase 1+)"
-	@echo "    make checkov        checkov -d infra/ (Phase 1+)"
-	@echo "    make plan-dev       terraform plan in $(TF_DEV) (Phase 1+)"
-	@echo "    make plan-prod      terraform plan in $(TF_PROD) (Phase 1+)"
-	@echo "    make apply-dev      terraform apply in $(TF_DEV) (Phase 2+)"
+	@echo "    make tf-fmt         terraform fmt -recursive infra/"
+	@echo "    make tf-validate    terraform validate in the single stack"
+	@echo "    make tflint         tflint --recursive infra/"
+	@echo "    make tfsec          tfsec infra/"
+	@echo "    make checkov        checkov -d infra/"
+	@echo "    make plan           terraform plan in $(TF_ENV)"
+	@echo "    make apply          terraform apply in $(TF_ENV)"
 	@echo ""
 	@echo "  Demo / lifecycle:"
 	@echo "    make bootstrap      Run scripts/bootstrap.sh"
@@ -81,8 +79,7 @@ tf-fmt:
 
 .PHONY: tf-validate
 tf-validate:
-	cd $(TF_DEV) && terraform init -backend=false -input=false && terraform validate
-	cd $(TF_PROD) && terraform init -backend=false -input=false && terraform validate
+	cd $(TF_ENV) && terraform init -backend=false -input=false && terraform validate
 
 .PHONY: tflint
 tflint:
@@ -96,17 +93,13 @@ tfsec:
 checkov:
 	@command -v checkov >/dev/null 2>&1 && checkov -d infra/ || echo "[skip] checkov not installed"
 
-.PHONY: plan-dev
-plan-dev:
-	cd $(TF_DEV) && terraform plan
+.PHONY: plan
+plan:
+	cd $(TF_ENV) && terraform plan
 
-.PHONY: plan-prod
-plan-prod:
-	cd $(TF_PROD) && terraform plan
-
-.PHONY: apply-dev
-apply-dev:
-	cd $(TF_DEV) && terraform apply
+.PHONY: apply
+apply:
+	cd $(TF_ENV) && terraform apply
 
 # --- Lifecycle ---
 

@@ -21,15 +21,6 @@ updates:
     commit-message:
       prefix: "chore(infra/deps)"
 
-  - package-ecosystem: "terraform"
-    directory: "/infra/envs/prod"
-    schedule:
-      interval: "weekly"
-    target-branch: "development"
-    open-pull-requests-limit: 3
-    commit-message:
-      prefix: "chore(infra/deps)"
-
   # GitHub Actions versions (workflows land in Phase 4).
   - package-ecosystem: "github-actions"
     directory: "/"

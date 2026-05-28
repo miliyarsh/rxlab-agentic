@@ -2,7 +2,7 @@
 
 HTTP API exposed by API Gateway (HTTP API). All responses are JSON unless noted.
 
-Base URL: Terraform output `api_url` (alias: `api_endpoint`) from `infra/envs/{dev,prod}`.
+Base URL: Terraform output `api_url` (alias: `api_endpoint`) from the single stack `infra/envs/dev`.
 
 ## Endpoints
 
@@ -16,7 +16,7 @@ Base URL: Terraform output `api_url` (alias: `api_endpoint`) from `infra/envs/{d
 ## Auth
 
 - **Dev:** no auth (single-tenant, ephemeral).
-- **Prod:** HTTPS only; API key gateway can be added post-release.
+- **Release:** HTTPS only; API key gateway can be added post-release. (Single-env model — see DECISIONS.md ADR-010.)
 
 ## POST /jobs
 
