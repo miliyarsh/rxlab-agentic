@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import StrEnum
 from typing import Any
 
@@ -11,7 +11,14 @@ import boto3
 from botocore.exceptions import ClientError
 
 from service.common.errors import NotFoundError, UpstreamError
-from service.common.models import AgentName, AgentRunRecord, JobRecord, JobStatus, utcnow
+from service.common.models import (
+    AgentName,
+    AgentRunRecord,
+    AuditRecord,
+    JobRecord,
+    JobStatus,
+    utcnow,
+)
 
 
 def _table_name(env_var: str) -> str:
@@ -60,6 +67,20 @@ def agent_run_to_item(record: AgentRunRecord) -> dict[str, Any]:
         data["ended_at"] = _serialize_datetime(record.ended_at)
     else:
         data.pop("ended_at", None)
+    return data
+
+
+def audit_record_to_item(record: AuditRecord, *, expires_at: datetime) -> dict[str, Any]:
+    data = record.model_dump()
+    data["agent"] = record.agent.value
+    data["event"] = record.event
+    if record.verdict is not None:
+        data["verdict"] = record.verdict
+    else:
+        data.pop("verdict", None)
+    data["reasons"] = [r.value for r in record.reasons]
+    data["created_at"] = _serialize_datetime(record.created_at)
+    data["expires_at"] = _serialize_datetime(expires_at)
     return data
 
 
@@ -164,6 +185,22 @@ class AgentRunsStore:
             )
         except ClientError as err:
             raise UpstreamError("failed to write agent run record", cause=err) from err
+
+
+class AuditStore:
+    def __init__(self, *, table_name: str | None = None, client: Any | None = None) -> None:
+        self._table_name = table_name or _table_name("AUDIT_TABLE")
+        self._client = client or boto3.client("dynamodb")
+
+    def put_audit(self, record: AuditRecord, *, ttl_days: int = 90) -> None:
+        expires_at = record.created_at + timedelta(days=ttl_days)
+        try:
+            self._client.put_item(
+                TableName=self._table_name,
+                Item=_item_to_dynamo(audit_record_to_item(record, expires_at=expires_at)),
+            )
+        except ClientError as err:
+            raise UpstreamError("failed to write audit record", cause=err) from err
 
 
 def _item_to_dynamo(item: dict[str, Any]) -> dict[str, dict[str, Any]]:

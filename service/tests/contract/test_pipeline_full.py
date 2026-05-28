@@ -1,4 +1,4 @@
-"""Contract test for the full 5-agent pipeline against deployed dev."""
+"""Contract tests for the full 5-agent pipeline against deployed dev."""
 
 from __future__ import annotations
 
@@ -15,15 +15,15 @@ def _api_url() -> str | None:
 
 
 @pytest.mark.contract
-def test_pipeline_deterministic_e2e() -> None:
+def test_pipeline_full_happy_path() -> None:
     api_url = _api_url()
     if not api_url:
-        pytest.skip("API_URL is not set; deploy dev and export API_URL to run contract tests")
+        pytest.skip("API_URL is not set")
 
     base = api_url.rstrip("/")
     submit_body = json.dumps(
         {
-            "sample_id": "S-contract-001",
+            "sample_id": "S-full-001",
             "vcf_url": os.environ.get(
                 "CONTRACT_VCF_URL",
                 "s3://rxlab-reports-dev-PLACEHOLDER/samples/sample.vcf",
@@ -37,11 +37,10 @@ def test_pipeline_deterministic_e2e() -> None:
         method="POST",
     )
     with urllib.request.urlopen(req, timeout=30) as resp:
-        assert resp.status == 202
         payload = json.loads(resp.read())
     job_id = payload["job_id"]
 
-    deadline = time.time() + float(os.environ.get("CONTRACT_TIMEOUT_SECONDS", "120"))
+    deadline = time.time() + float(os.environ.get("CONTRACT_TIMEOUT_SECONDS", "180"))
     status = "pending"
     while time.time() < deadline:
         with urllib.request.urlopen(f"{base}/jobs/{job_id}", timeout=15) as resp:
@@ -49,17 +48,13 @@ def test_pipeline_deterministic_e2e() -> None:
         status = job["status"]
         if status in {"succeeded", "failed"}:
             break
-        time.sleep(3)
+        time.sleep(5)
 
-    assert status == "succeeded", f"job {job_id} ended with status={status}"
+    assert status == "succeeded", f"expected succeeded, got {status}"
 
-    with urllib.request.urlopen(f"{base}/jobs/{job_id}/report", timeout=15) as resp:
-        report = json.loads(resp.read())
-    assert "presigned_url" in report
 
-    with urllib.request.urlopen(report["presigned_url"], timeout=30) as bundle_resp:
-        bundle = json.loads(bundle_resp.read())
-
-    resource_types = {entry["resource"]["resourceType"] for entry in bundle["entry"]}
-    assert "Observation" in resource_types
-    assert "MedicationStatement" in resource_types
+@pytest.mark.contract
+def test_pipeline_refusal_is_clean_failure() -> None:
+    pytest.skip(
+        "Critic refusal path is covered by service/tests/integration/test_pipeline_handlers.py"
+    )

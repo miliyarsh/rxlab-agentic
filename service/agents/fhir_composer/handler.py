@@ -13,7 +13,7 @@ from service.agents.fhir_composer.fhir_models import build_bundle
 from service.common.errors import PipelineError
 from service.common.logging import get_logger
 from service.common.models import AgentName, AnalyzerOutput, FailureReason, FhirComposerOutput
-from service.common.pipeline import agent_name_from_env, mark_job_succeeded, track_agent_run
+from service.common.pipeline import agent_name_from_env, track_agent_run
 
 logger = get_logger(__name__)
 
@@ -59,9 +59,11 @@ def handler(event: dict[str, Any], context: object) -> dict[str, Any]:
             bundle_s3_url=bundle_url,
             resource_counts=built["resource_counts"],
         )
-        mark_job_succeeded(analyzer.job_id)
         logger.info(
             "fhir_composer.completed",
             extra={"job_id": analyzer.job_id, "bundle_s3_url": bundle_url},
         )
-        return output.model_dump(mode="json")
+        return {
+            **output.model_dump(mode="json"),
+            "analyzer": analyzer.model_dump(mode="json"),
+        }
