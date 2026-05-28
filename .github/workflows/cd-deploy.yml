@@ -1,0 +1,73 @@
+name: CD — Deploy
+
+on:
+  push:
+    branches: [development, main]
+    paths:
+      - "service/**"
+      - "infra/**"
+      - "pyproject.toml"
+      - ".github/workflows/cd-deploy.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || 'development' }}
+    env:
+      TF_ENV: ${{ github.ref_name == 'main' && 'infra/envs/prod' || 'infra/envs/dev' }}
+      IMAGE_TAG: ${{ github.sha }}
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_ENV }}
+        run: terraform init -input=false
+
+      - name: Ensure Analyzer ECR repository exists
+        working-directory: ${{ env.TF_ENV }}
+        run: |
+          terraform apply -auto-approve -input=false \
+            -target=module.agent_analyzer.aws_ecr_repository.this
+
+      - name: Build and push Analyzer image
+        run: |
+          ECR_URL="$(terraform -chdir="${TF_ENV}" output -raw analyzer_ecr_repository_url)"
+          IMAGE="${ECR_URL}:${IMAGE_TAG}"
+          docker build -f service/agents/analyzer/Dockerfile -t "${IMAGE}" .
+          aws ecr get-login-password --region "${AWS_REGION}" \
+            | docker login --username AWS --password-stdin "${ECR_URL%%/*}"
+          docker push "${IMAGE}"
+
+      - name: Terraform apply
+        working-directory: ${{ env.TF_ENV }}
+        env:
+          TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+          TF_VAR_analyzer_image_tag: ${{ env.IMAGE_TAG }}
+        run: terraform apply -auto-approve -input=false
+
+      - name: Seed demo VCF and run contract smoke test
+        continue-on-error: true
+        run: |
+          pip install -e ".[dev]"
+          bash scripts/seed_sample_vcf.sh
+          export API_URL="$(terraform -chdir="${TF_ENV}" output -raw api_url)"
+          export CONTRACT_VCF_URL="s3://$(terraform -chdir="${TF_ENV}" output -raw reports_bucket_name)/samples/sample.vcf"
+          pytest -m contract -v --maxfail=1

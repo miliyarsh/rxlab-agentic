@@ -1,0 +1,61 @@
+name: CI — Terraform Plan (PR)
+
+on:
+  pull_request:
+    branches: [development, main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/ci-terraform-plan.yml"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        env_dir: [infra/envs/dev, infra/envs/prod]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive infra/
+
+      - name: Terraform init + validate (${{ matrix.env_dir }})
+        working-directory: ${{ matrix.env_dir }}
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+      - name: Terraform plan (${{ matrix.env_dir }})
+        id: plan
+        continue-on-error: true
+        working-directory: ${{ matrix.env_dir }}
+        run: |
+          terraform init -backend=false -input=false
+          terraform plan -no-color -input=false 2>&1 | tee plan.txt
+
+      - name: Comment plan on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = 'plan.txt';
+            let body = 'Terraform plan output unavailable.';
+            try {
+              const text = fs.readFileSync('${{ matrix.env_dir }}/' + path, 'utf8');
+              body = '```\n' + text.slice(-60000) + '\n```';
+            } catch (e) {}
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `### Terraform plan (${{ matrix.env_dir }})\n\n` + body
+            });

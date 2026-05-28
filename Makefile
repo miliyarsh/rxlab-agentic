@@ -1,7 +1,6 @@
 # RxLab Agentic — top-level Makefile
 #
-# Python targets are real from feature C1; Terraform/script targets remain
-# stubs until C2+. Run `make help` for a summary.
+# Python and Terraform targets match CI (see .github/workflows/).
 
 PYTHON  ?= python3
 PIP     ?= $(PYTHON) -m pip
@@ -35,9 +34,11 @@ help:
 	@echo "    make apply-dev      terraform apply in $(TF_DEV) (Phase 2+)"
 	@echo ""
 	@echo "  Demo / lifecycle:"
-	@echo "    make bootstrap      Run scripts/bootstrap.sh (Phase 1)"
-	@echo "    make demo           Run scripts/demo.sh against dev (Phase 4)"
-	@echo "    make teardown       Run scripts/teardown.sh (Phase 4)"
+	@echo "    make bootstrap      Run scripts/bootstrap.sh"
+	@echo "    make push-analyzer  Build/push Analyzer image to ECR"
+	@echo "    make seed-vcf       Upload sample.vcf to reports bucket"
+	@echo "    make demo           Run scripts/demo.sh against dev"
+	@echo "    make teardown       Run scripts/teardown.sh"
 
 # --- Service ---
 
@@ -85,15 +86,15 @@ tf-validate:
 
 .PHONY: tflint
 tflint:
-	@echo "[stub] tflint --recursive infra/  (install tflint to enable)"
+	@command -v tflint >/dev/null 2>&1 && tflint --recursive infra/ || echo "[skip] tflint not installed"
 
 .PHONY: tfsec
 tfsec:
-	@echo "[stub] tfsec infra/  (install tfsec to enable)"
+	@command -v tfsec >/dev/null 2>&1 && tfsec infra/ || echo "[skip] tfsec not installed"
 
 .PHONY: checkov
 checkov:
-	@echo "[stub] checkov -d infra/  (install checkov to enable)"
+	@command -v checkov >/dev/null 2>&1 && checkov -d infra/ || echo "[skip] checkov not installed"
 
 .PHONY: plan-dev
 plan-dev:
@@ -111,12 +112,20 @@ apply-dev:
 
 .PHONY: bootstrap
 bootstrap:
-	@echo "[stub] bash scripts/bootstrap.sh  (Phase 1)"
+	bash scripts/bootstrap.sh
+
+.PHONY: seed-vcf
+seed-vcf:
+	bash scripts/seed_sample_vcf.sh
+
+.PHONY: push-analyzer
+push-analyzer:
+	bash scripts/push_analyzer_image.sh
 
 .PHONY: demo
 demo:
-	@echo "[stub] bash scripts/demo.sh  (Phase 4)"
+	bash scripts/demo.sh
 
 .PHONY: teardown
 teardown:
-	@echo "[stub] bash scripts/teardown.sh  (Phase 4)"
+	bash scripts/teardown.sh
