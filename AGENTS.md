@@ -142,7 +142,7 @@ Written to S3 at `s3://<reports-bucket>/<job_id>/bundle.json` with KMS encryptio
 
 ### Bedrock call constraints
 
-- Model id: from SSM `/rxlab/<env>/bedrock/model_id` (default `anthropic.claude-3-haiku-20240307-v1:0`).
+- Model id: from SSM `/rxlab/<env>/bedrock/model_id` (default `anthropic.claude-haiku-4-5-20251001-v1:0`).
 - `max_tokens`: **hard cap, 512**.
 - `temperature`: **0.2**.
 - JSON mode (or equivalent constrained output) **required**.

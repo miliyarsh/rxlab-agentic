@@ -2,45 +2,43 @@
 
 This file collects the key design decisions made on the RxLab Agentic project. Each ADR follows a short template: **Context → Decision → Consequences → Alternatives considered**.
 
-> **Status:** ADRs are filled in as the build progresses. Stubs below are pre-populated with the topic; the full rationale is written during the relevant phase.
-
 ---
 
 ## ADR-001 — Multi-agent pipeline vs monolithic Lambda
 
-**Status:** Accepted (to be expanded in Phase 1).
+**Status:** Accepted.
 **Context:** The service must validate VCFs, apply CPIC rules, emit FHIR, summarize, and safety-check the summary.
-**Decision:** Split into 5 single-responsibility Lambdas orchestrated by Step Functions.
-**Consequences:** Per-agent observability, AI isolated to two agents, replaceability, more moving parts.
+**Decision:** Split into 5 single-responsibility Lambdas orchestrated by Step Functions Express.
+**Consequences:** Per-agent observability, AI isolated to Summarizer + Critic, replaceability, more moving parts.
 **Alternatives:** One monolithic Lambda (rejected: harder to observe and replace).
 
 ## ADR-002 — Step Functions Express vs SQS chain
 
-**Status:** Accepted (to be expanded in Phase 2).
+**Status:** Accepted.
 **Context:** Need to chain 5 Lambdas with retries, DLQs, and a visual debug story.
-**Decision:** Step Functions Express workflow.
+**Decision:** Step Functions Express workflow with a Critic `Choice` state (approve → succeed, reject → clean failure).
 **Consequences:** Free retries/DLQ, visual debug, sub-second billing; 5-min execution cap.
 **Alternatives:** SQS chain (cheaper at scale but no visual), EventBridge Pipes (less mature for this).
 
 ## ADR-003 — Hybrid Lambda packaging (zip + container)
 
-**Status:** Accepted (to be expanded in Phase 2).
+**Status:** Accepted.
 **Context:** Most agents are small and pure-Python; Analyzer carries CPIC rule data.
-**Decision:** Most agents as zip Lambdas; Analyzer as an ECR container image.
-**Consequences:** Shorter cold starts for the common case; demonstrates Docker skill on Analyzer.
+**Decision:** Zip Lambdas for API + most agents; Analyzer as an ECR container image. All zip handlers use one `source_dir` (`service/`) with dotted handler paths.
+**Consequences:** Shorter cold starts for the common case; one packaging path for CI and Terraform.
 **Alternatives:** All-zip (CPIC data awkward as Lambda layer), all-container (slower cold start everywhere).
 
 ## ADR-004 — Real Bedrock vs deterministic fallback
 
-**Status:** Accepted (to be expanded in Phase 3).
-**Context:** AI maturity is a 20% rubric line item.
-**Decision:** Real Bedrock (Claude Haiku) with strict token caps, scoped IAM, and a feature flag in SSM to flip back to a deterministic stub.
-**Consequences:** Higher AI score; bounded cost; cleaner demo story.
+**Status:** Accepted.
+**Context:** AI maturity is a rubric line item; cost must stay bounded.
+**Decision:** Real Bedrock (Claude Haiku, pinned model id in SSM) with `max_tokens` caps, scoped IAM, and SSM feature flag `bedrock_enabled` for stub mode in tests/dev.
+**Consequences:** Higher AI score; bounded cost; Critic deterministic guardrails run before and after LLM review.
 **Alternatives:** Fake summarizer (lower AI score), no AI (fails Option 2).
 
 ## ADR-005 — DynamoDB + S3 vs Aurora
 
-**Status:** Accepted (to be expanded in Phase 2).
+**Status:** Accepted.
 **Context:** Job state, audit log, and report blob storage.
 **Decision:** DynamoDB (jobs + agent_runs + audit) and S3 (FHIR Bundle) with customer-managed KMS keys.
 **Consequences:** No idle cost; presigned URLs avoid client-side IAM; PITR + KMS satisfy security posture.
@@ -62,12 +60,28 @@ This file collects the key design decisions made on the RxLab Agentic project. E
 
 ## ADR-007 — CPIC subset vs real PharmCAT
 
-**Status:** Accepted (to be expanded in Phase 2).
+**Status:** Accepted.
 **Context:** PharmCAT is JVM-heavy and not Lambda-friendly.
 **Decision:** Ship a hand-coded CPIC subset inside the Analyzer container; clearly document it as demo-grade.
 **Consequences:** Honest scope; demonstrates the platform shape; production substitute (e.g. ZaroPGx) noted in this ADR.
 **Alternatives:** Running PharmCAT in Fargate (rejected: cost + scope), no rule engine (rejected: would not demonstrate the analysis step).
 
+## ADR-008 — Critic v2 deterministic guardrails
+
+**Status:** Accepted (C12).
+**Context:** LLM summaries must not invent drugs or omit CPIC citations; low-confidence summaries must not reach clinicians.
+**Decision:** Run deterministic checks in Critic before and after Bedrock: `low_confidence` (< 0.6), `missing_cpic_citation`, `unknown_drug_name` (allowlist built from Analyzer CPIC recommendations). On approve, patch FHIR `DocumentReference` and mark job succeeded; on reject, mark job failed and write audit row.
+**Consequences:** Refusals are testable without Bedrock; audit trail captures verdict + token usage.
+**Alternatives:** LLM-only safety (rejected: not reproducible in unit tests).
+
+## ADR-009 — Observability and canary
+
+**Status:** Accepted (C10).
+**Context:** Platform engineer rubric expects dashboards, alarms, and synthetic monitoring.
+**Decision:** Reusable `observability` module (dashboard + alarms → SNS when `alert_email` set), X-Ray on all Lambdas, EventBridge `rate(5 minutes)` → healthz canary emitting `RxLab/Canary/HealthzSuccess`.
+**Consequences:** Alarms/dashboards are conditional on alert email to keep zero-config dev stacks valid; canary uses documented `PutMetricData` wildcard exception.
+**Alternatives:** Third-party APM (rejected: scope/cost for take-home).
+
 ---
 
-*Each ADR will be expanded with full prose, references, and links to the implementing commits as the corresponding phase ships.*
+*ADRs link to implementing commits on `development` as each feature ships.*

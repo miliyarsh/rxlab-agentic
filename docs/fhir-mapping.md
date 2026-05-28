@@ -13,7 +13,7 @@ A FHIR R4 `Bundle` with `type = "collection"`. The bundle's `entry[]` carries th
 | `calls[].gene` + `calls[].genotype` | `Observation` | LOINC `81239-4` (genotype display); gene stored in `component.code.text`, genotype in `component.valueString`. |
 | `calls[].phenotype` | `Observation` (linked via `derivedFrom`) | Separate Observation with `derivedFrom` pointing at the genotype Observation URN. |
 | `calls[].cpic_recommendations[]` | `MedicationStatement` | One per recommendation; `medicationCodeableConcept.text` = drug; `note` combines recommendation + CPIC citation. |
-| (placeholder until Critic approves in C9) | `DocumentReference` | Stub entry with markdown attachment title *Summary pending Critic approval*. |
+| (Critic approve) | `DocumentReference` | On approve, Critic patches markdown summary into the existing `DocumentReference` attachment (`contentType=text/markdown`, base64 `data`). FHIR Composer writes a placeholder title until approval. |
 
 ## CPIC subset → calls (Analyzer)
 

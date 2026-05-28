@@ -4,7 +4,7 @@
 
 This is an AWS-native, Terraform-deployed, GitHub Actions-CI/CD'd multi-agent service built for the CVS Senior Platform Engineer take-home assessment.
 
-> **Status:** Repository scaffolding only. No source code yet — that lands during the phased build documented in [`PLAN.md`](PLAN.md) and [`../project-overview/03-STEP-BY-STEP.md`](../project-overview/03-STEP-BY-STEP.md).
+> **Status:** C1–C12 implemented in-repo. Deploy with `scripts/bootstrap.sh` then `terraform apply` in `infra/envs/dev`. CI/CD workflows run on push to `development` / `main`.
 
 ## Quick facts
 
@@ -39,17 +39,28 @@ flowchart LR
 
 ## Deploy / demo / teardown
 
-> All three commands below are stubs until Phase 4 — they will be implemented in `scripts/`.
-
 ```bash
-# One-time setup (see project-overview/06-AWS-GITHUB-SETUP.md):
+# One-time remote state bootstrap (see project-overview/06-AWS-GITHUB-SETUP.md):
 bash scripts/bootstrap.sh
 
+# Apply dev stack:
+cd infra/envs/dev && terraform init && terraform apply
+
+# First deploy: push Analyzer image before Lambda can start:
+make push-analyzer IMAGE_TAG=bootstrap
+
 # Live end-to-end demo against the dev environment:
+export API_URL="$(terraform -chdir=infra/envs/dev output -raw api_url)"
 bash scripts/demo.sh
 
-# Tear everything down:
+# Tear dev stack down (keeps remote state bucket):
 bash scripts/teardown.sh
+```
+
+Local verification before push:
+
+```bash
+make lint && make test && make tf-validate
 ```
 
 ## Project documents
