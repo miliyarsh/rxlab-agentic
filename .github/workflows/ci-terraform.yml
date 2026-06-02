@@ -24,7 +24,7 @@ jobs:
     env:
       TF_ENV: infra/envs/dev
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -43,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: tflint (optional)
         run: |

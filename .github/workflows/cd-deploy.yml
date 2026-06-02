@@ -39,7 +39,7 @@ jobs:
       TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
       TF_LOCK_TABLE: ${{ vars.TF_LOCK_TABLE || 'rxlab-terraform-locks' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Validate required GitHub variables
         run: |
