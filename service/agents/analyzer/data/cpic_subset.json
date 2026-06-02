@@ -1,0 +1,30 @@
+{
+  "rules": [
+    {
+      "gene": "CYP2C19",
+      "variant": {"chrom": "10", "pos": 96541616, "ref": "G", "alt": "A"},
+      "genotype": "*1/*2",
+      "phenotype": "Intermediate Metabolizer",
+      "recommendations": [
+        {
+          "drug": "clopidogrel",
+          "recommendation": "Consider alternative antiplatelet therapy",
+          "citation": "CPIC: Clopidogrel and CYP2C19 — 2022 update"
+        }
+      ]
+    },
+    {
+      "gene": "TPMT",
+      "variant": {"chrom": "6", "pos": 18139208, "ref": "G", "alt": "A"},
+      "genotype": "*3A/*3A",
+      "phenotype": "Poor Metabolizer",
+      "recommendations": [
+        {
+          "drug": "azathioprine",
+          "recommendation": "Reduce starting dose and monitor closely",
+          "citation": "CPIC: TPMT and azathioprine — 2018 update"
+        }
+      ]
+    }
+  ]
+}

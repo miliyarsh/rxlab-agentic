@@ -1,6 +1,6 @@
 # CLAUDE.md — Instructions for AI assistants working in this repo
 
-This file is read by AI tools (Cursor, Claude Code, Copilot, etc.) at the start of any session. It encodes the conventions, constraints, and security do's-and-don'ts that all generated code in this repository must respect.
+This file is read by AI assistants (Claude Code, Copilot, etc.) at the start of any session. It encodes the conventions, constraints, and security do's-and-don'ts that all generated code in this repository must respect.
 
 > If you are a human developer, also read this file — it is the single source of truth for "how do we do things in this repo".
 
@@ -22,7 +22,7 @@ Every change must move at least one of those needles or be rejected.
 
 ## Branch & release model (do not violate)
 
-- This repo has **only two long-lived branches**: `development` (integration; all commits land here) and `main` (production; updated only by the OPEN Release PR `development -> main`).
+- This repo has **two long-lived branches** and **one AWS environment**: commits land on `development` (auto-deploys to `infra/envs/dev`), and `main` is updated only by the Release PR `development -> main` (which re-deploys the **same** stack). See `DECISIONS.md` ADR-006 and ADR-010.
 - **Do not propose creating short-lived feature branches** (`feat/...`) for normal work. Push commits directly to `development`.
 - If you genuinely need CI to gate a single risky change before it lands, open a small ad-hoc PR into `development` and self-merge after CI passes — this is the exception, not the default.
 - The **Release PR `development -> main`** is intentionally left OPEN at submission with the AI workflow story in its description.
@@ -61,6 +61,7 @@ Every change must move at least one of those needles or be rejected.
 
 - [Conventional Commits](https://www.conventionalcommits.org/).
 - Examples: `feat(api): add submit_job handler`, `chore(infra/kms): align key alias`, `docs(decisions): expand ADR-006`.
+- **Never** add `Co-authored-by:` trailers for AI tools. Commits are authored by the human developer only.
 
 ## FHIR conventions
 

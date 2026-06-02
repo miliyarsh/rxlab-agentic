@@ -8,26 +8,27 @@
 **Bedrock:** Real Bedrock (Claude Haiku) with strict budget caps + off-switch
 **Packaging:** Lambda zips + ECR container image (Analyzer)
 
-## Branch & Release Model (simplified, 2 branches only)
+## Branch & Environment Model (2 branches, 1 environment)
 
-This repo uses **only two long-lived branches**:
+This repo uses **two long-lived branches** and **one AWS environment**:
 
-- `development` — integration / staging. **All commits land here directly.** Pushes auto-deploy to the dev AWS environment (once Phase 4 CI is in place).
-- `main` — production. Updated only by merging the **Release PR** `development -> main`.
+- `development` — integration. **All commits land here directly.** Pushes auto-deploy to the single AWS stack (`infra/envs/dev`).
+- `main` — release marker. Updated only by merging the **Release PR** `development -> main`. The merge re-deploys the **same** stack.
 
-There are **no short-lived feature branches** for normal work.
+There are **no short-lived feature branches** for normal work, and **no second AWS environment** (see DECISIONS.md ADR-010).
 
-### OPEN PR at submission
+### Release PR for the assessment
 
-The Release PR (`development -> main`) is **intentionally left OPEN at submission** to satisfy the assessment's "at least one PR open showing AI-assisted development" requirement. Its description carries the AI iteration story (Cursor / Claude excerpts, rejected suggestions, course corrections, link to `docs/ai-journal.md`).
-
-After assessment review, merging the Release PR triggers the env-protected production deploy via `cd-deploy.yml`.
+The Release PR (`development -> main`) carries the AI iteration story (Claude Code excerpts, rejected suggestions, course corrections, link to `docs/ai-journal.md`). Merging it triggers `cd-deploy.yml` to re-apply `infra/envs/dev` end-to-end, proving the promotion flow without spinning up a duplicate environment.
 
 ```mermaid
 flowchart LR
-  Dev[development<br/>all commits land here]
-  Main[main = production]
-  Dev ==>|Release PR<br/>development -> main<br/>OPEN at submission| Main
+  Dev[development<br/>commits land here]
+  Main[main<br/>release marker]
+  Stack[(AWS stack:<br/>infra/envs/dev<br/>SINGLE env)]
+  Dev ==>|Release PR| Main
+  Dev -. CD deploy .-> Stack
+  Main -. CD deploy .-> Stack
 ```
 
 ## Phased Commit Plan (10 commits on `development`)
@@ -52,13 +53,12 @@ rxlab-agentic/
   CLAUDE.md
   AGENTS.md
   PLAN.md                    # this file
-  .cursor/rules/
-  diagrams/
   docs/
     ai-journal.md
     api.md
     fhir-mapping.md
     baseline-check-prep.md
+  diagrams/
   service/
     common/                  # shared pydantic models, logging, errors
     api/

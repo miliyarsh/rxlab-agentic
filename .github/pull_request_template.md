@@ -1,10 +1,16 @@
 <!--
 PR template for RxLab Agentic.
 
-Branch model: this repo uses only two long-lived branches — `development` and `main`.
-Most work goes to `development` directly without a PR; this template is used for:
-  - the OPEN Release PR (`development -> main`), and
+Branch & environment model: 2 long-lived branches (`development`, `main`),
+1 AWS environment (`infra/envs/dev`) — see DECISIONS.md ADR-006 and ADR-010.
+
+Most work goes directly to `development`. This template is used for:
+  - the Release PR (`development -> main`) that re-deploys to the single stack, and
   - any optional ad-hoc PR into `development` you want CI to gate.
+
+For a Release PR specifically, prefer the dedicated template:
+  .github/PULL_REQUEST_TEMPLATE/release.md
+  (append ?template=release.md to the PR URL, or pick it from the GitHub UI).
 -->
 
 ## Goal
@@ -15,8 +21,8 @@ Most work goes to `development` directly without a PR; this template is used for
 
 <!-- Bullet list of the meaningful changes. Reference modules, agents, or endpoints. -->
 
-- 
-- 
+-
+-
 
 ## Verification
 
@@ -32,7 +38,7 @@ Most work goes to `development` directly without a PR; this template is used for
 <!-- What did you use AI for? What did the AI get wrong? What did you reject?
      Link to docs/ai-journal.md entries for any non-trivial back-and-forth. -->
 
-- Used Cursor / Claude for: 
+- Used AI tools for:
 - Rejected suggestions:
 - Course corrections logged in `docs/ai-journal.md`:
 
@@ -40,10 +46,10 @@ Most work goes to `development` directly without a PR; this template is used for
 
 <!-- What's the blast radius? How would you roll back? -->
 
-- 
+-
 
 ## Screenshots / links
 
 <!-- CloudWatch dashboard, Step Functions execution, etc. -->
 
-- 
+-

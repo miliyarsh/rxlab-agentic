@@ -1,0 +1,41 @@
+<mxfile host="app.diagrams.net" modified="2026-05-28T00:00:00.000Z" agent="rxlab-agentic" version="22.1.0">
+  <diagram id="architecture" name="RxLab Architecture">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="client" value="Developer / Demo Client" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="api" value="API Gateway HTTP&#xa;POST/GET /jobs, /healthz" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;" vertex="1" parent="1">
+          <mxGeometry x="220" y="260" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="sfn" value="Step Functions Express&#xa;5-agent pipeline" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;" vertex="1" parent="1">
+          <mxGeometry x="420" y="240" width="180" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="agents" value="Lambdas: Intake, Analyzer (ECR),&#xa;FHIR Composer, Summarizer, Critic" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="230" width="220" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="bedrock" value="Amazon Bedrock&#xa;(Summarizer + Critic)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;" vertex="1" parent="1">
+          <mxGeometry x="900" y="250" width="150" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="ddb" value="DynamoDB&#xa;jobs, agent_runs, audit" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="420" y="420" width="120" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3" value="S3 (KMS)&#xa;VCF + FHIR bundles" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="580" y="420" width="120" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="obs" value="CloudWatch + X-Ray&#xa;Canary + Alarms → SNS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;" vertex="1" parent="1">
+          <mxGeometry x="740" y="420" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" edge="1" parent="1" source="client" target="api"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e2" edge="1" parent="1" source="api" target="sfn"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e3" edge="1" parent="1" source="sfn" target="agents"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e4" edge="1" parent="1" source="agents" target="bedrock"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e5" edge="1" parent="1" source="agents" target="ddb"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e6" edge="1" parent="1" source="agents" target="s3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e7" edge="1" parent="1" source="api" target="obs"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

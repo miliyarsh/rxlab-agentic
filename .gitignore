@@ -1,4 +1,6 @@
-# --- Python ---
+*.tfplan
+tfplan
+.build/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -69,7 +71,9 @@ desktop.ini
 *.pem
 *.key
 
-# --- Project-specific ---
+# Local Terraform backend config (copy from backend.hcl.example)
+infra/envs/dev/backend.hcl
+
 # Generated diagrams (commit .drawio.xml + .png; ignore tool exports)
 diagrams/*.tmp
 diagrams/.~lock.*

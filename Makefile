@@ -1,15 +1,13 @@
 # RxLab Agentic — top-level Makefile
 #
-# Python targets are real from feature C1; Terraform/script targets remain
-# stubs until C2+. Run `make help` for a summary.
+# Python and Terraform targets match CI (see .github/workflows/).
 
 PYTHON  ?= python3
 PIP     ?= $(PYTHON) -m pip
 PYTEST  ?= $(PYTHON) -m pytest
 RUFF    ?= $(PYTHON) -m ruff
 MYPY    ?= $(PYTHON) -m mypy
-TF_DEV  := infra/envs/dev
-TF_PROD := infra/envs/prod
+TF_ENV  := infra/envs/dev
 
 .PHONY: help
 help:
@@ -25,19 +23,20 @@ help:
 	@echo "    make cov            Run unit suite with coverage report"
 	@echo ""
 	@echo "  Terraform:"
-	@echo "    make tf-fmt         terraform fmt -recursive infra/ (Phase 1+)"
-	@echo "    make tf-validate    terraform validate in each env (Phase 1+)"
-	@echo "    make tflint         tflint --recursive infra/ (Phase 1+)"
-	@echo "    make tfsec          tfsec infra/ (Phase 1+)"
-	@echo "    make checkov        checkov -d infra/ (Phase 1+)"
-	@echo "    make plan-dev       terraform plan in $(TF_DEV) (Phase 1+)"
-	@echo "    make plan-prod      terraform plan in $(TF_PROD) (Phase 1+)"
-	@echo "    make apply-dev      terraform apply in $(TF_DEV) (Phase 2+)"
+	@echo "    make tf-fmt         terraform fmt -recursive infra/"
+	@echo "    make tf-validate    terraform validate in the single stack"
+	@echo "    make tflint         tflint --recursive infra/"
+	@echo "    make tfsec          tfsec infra/"
+	@echo "    make checkov        checkov -d infra/"
+	@echo "    make plan           terraform plan in $(TF_ENV)"
+	@echo "    make apply          terraform apply in $(TF_ENV)"
 	@echo ""
 	@echo "  Demo / lifecycle:"
-	@echo "    make bootstrap      Run scripts/bootstrap.sh (Phase 1)"
-	@echo "    make demo           Run scripts/demo.sh against dev (Phase 4)"
-	@echo "    make teardown       Run scripts/teardown.sh (Phase 4)"
+	@echo "    make bootstrap      Run scripts/bootstrap.sh"
+	@echo "    make push-analyzer  Build/push Analyzer image to ECR"
+	@echo "    make seed-vcf       Upload sample.vcf to reports bucket"
+	@echo "    make demo           Run scripts/demo.sh against dev"
+	@echo "    make teardown       Run scripts/teardown.sh"
 
 # --- Service ---
 
@@ -66,7 +65,7 @@ test-integration:
 
 .PHONY: test-contract
 test-contract:
-	@echo "[stub] make test-contract — deployed-API tests land in C8."
+	$(PYTEST) -m contract
 
 .PHONY: cov
 cov:
@@ -76,46 +75,50 @@ cov:
 
 .PHONY: tf-fmt
 tf-fmt:
-	@echo "[stub] terraform fmt -recursive infra/  (Phase 1+)"
+	terraform fmt -recursive infra/
 
 .PHONY: tf-validate
 tf-validate:
-	@echo "[stub] terraform validate in $(TF_DEV) and $(TF_PROD)  (Phase 1+)"
+	cd $(TF_ENV) && terraform init -backend=false -input=false && terraform validate
 
 .PHONY: tflint
 tflint:
-	@echo "[stub] tflint --recursive infra/  (Phase 1+)"
+	@command -v tflint >/dev/null 2>&1 && tflint --recursive infra/ || echo "[skip] tflint not installed"
 
 .PHONY: tfsec
 tfsec:
-	@echo "[stub] tfsec infra/  (Phase 1+)"
+	@command -v tfsec >/dev/null 2>&1 && tfsec infra/ || echo "[skip] tfsec not installed"
 
 .PHONY: checkov
 checkov:
-	@echo "[stub] checkov -d infra/  (Phase 1+)"
+	@command -v checkov >/dev/null 2>&1 && checkov -d infra/ || echo "[skip] checkov not installed"
 
-.PHONY: plan-dev
-plan-dev:
-	@echo "[stub] terraform plan in $(TF_DEV)  (Phase 1+)"
+.PHONY: plan
+plan:
+	cd $(TF_ENV) && terraform plan
 
-.PHONY: plan-prod
-plan-prod:
-	@echo "[stub] terraform plan in $(TF_PROD)  (Phase 1+)"
-
-.PHONY: apply-dev
-apply-dev:
-	@echo "[stub] terraform apply in $(TF_DEV)  (Phase 2+)"
+.PHONY: apply
+apply:
+	cd $(TF_ENV) && terraform apply
 
 # --- Lifecycle ---
 
 .PHONY: bootstrap
 bootstrap:
-	@echo "[stub] bash scripts/bootstrap.sh  (Phase 1)"
+	bash scripts/bootstrap.sh
+
+.PHONY: seed-vcf
+seed-vcf:
+	bash scripts/seed_sample_vcf.sh
+
+.PHONY: push-analyzer
+push-analyzer:
+	bash scripts/push_analyzer_image.sh
 
 .PHONY: demo
 demo:
-	@echo "[stub] bash scripts/demo.sh  (Phase 4)"
+	bash scripts/demo.sh
 
 .PHONY: teardown
 teardown:
-	@echo "[stub] bash scripts/teardown.sh  (Phase 4)"
+	bash scripts/teardown.sh

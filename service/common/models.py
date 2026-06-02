@@ -85,7 +85,7 @@ class FailureReason(StrEnum):
     INVALID_FHIR_PAYLOAD = "invalid_fhir_payload"
     S3_WRITE_FAILED = "s3_write_failed"
     BEDROCK_ERROR = "bedrock_error"
-    TOKEN_BUDGET_EXCEEDED = "token_budget_exceeded"
+    TOKEN_BUDGET_EXCEEDED = "token_budget_exceeded"  # nosec B105
     INVALID_LLM_OUTPUT = "invalid_llm_output"
     MISSING_CPIC_CITATION = "missing_cpic_citation"
     UNKNOWN_DRUG_NAME = "unknown_drug_name"
@@ -106,6 +106,16 @@ class SubmitJobRequest(_StrictModel):
 class SubmitJobResponse(_StrictModel):
     job_id: JobId
     status: Literal["pending"]
+
+
+class UploadVcfRequest(_StrictModel):
+    filename: str = Field(min_length=5, max_length=128, pattern=r"^[\w.-]+\.vcf$")
+    content_base64: str = Field(min_length=4, max_length=7_000_000)
+
+
+class UploadVcfResponse(_StrictModel):
+    vcf_url: str = Field(pattern=S3_URL_PATTERN, max_length=1024)
+    object_key: str = Field(min_length=1, max_length=512)
 
 
 class GetJobResponse(_StrictModel):

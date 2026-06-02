@@ -1,0 +1,62 @@
+name: CI — Terraform
+
+# Single-environment model: this repo has exactly one Terraform stack at
+# `infra/envs/dev`. Both `development` and `main` deploy to it.
+
+on:
+  push:
+    branches: [development, main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/ci-terraform.yml"
+  pull_request:
+    branches: [development, main]
+    paths:
+      - "infra/**"
+      - ".github/workflows/ci-terraform.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      TF_ENV: infra/envs/dev
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive infra/
+
+      - name: Terraform init + validate (${{ env.TF_ENV }})
+        working-directory: ${{ env.TF_ENV }}
+        run: |
+          terraform init -backend=false -input=false
+          terraform validate
+
+  optional-scanners:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: tflint (optional)
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --init
+          tflint --recursive infra/ || true
+
+      - name: tfsec (optional)
+        run: |
+          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+          tfsec infra/ || true
+
+      - name: checkov (optional)
+        run: |
+          pip install checkov
+          checkov -d infra/ || true

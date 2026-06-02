@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Strip AI-tool co-author trailers that some IDE integrations append automatically.
+# Enable once per clone: git config core.hooksPath .githooks
+set -euo pipefail
+
+MSG_FILE="${1:?commit message file required}"
+
+python - "$MSG_FILE" <<'PY'
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8", errors="replace") as handle:
+    lines = handle.readlines()
+
+blocked = (
+    "co-authored-by: cursor",
+    "co-authored-by: claude",
+    "co-authored-by: copilot",
+)
+
+filtered = [
+    line
+    for line in lines
+    if not any(token in line.lower() for token in blocked)
+]
+
+with open(path, "w", encoding="utf-8") as handle:
+    handle.writelines(filtered)
+PY

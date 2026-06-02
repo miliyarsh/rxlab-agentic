@@ -1,0 +1,7 @@
+# Copy to backend.hcl and replace ACCOUNT_ID before `terraform init -backend-config=backend.hcl`.
+# backend.hcl is gitignored — never commit account-specific state config.
+
+environment = "dev"
+region      = "us-east-1"
+
+# alert_email = "you@example.com"
