@@ -85,7 +85,7 @@ class FailureReason(StrEnum):
     INVALID_FHIR_PAYLOAD = "invalid_fhir_payload"
     S3_WRITE_FAILED = "s3_write_failed"
     BEDROCK_ERROR = "bedrock_error"
-    TOKEN_BUDGET_EXCEEDED = "token_budget_exceeded"
+    TOKEN_BUDGET_EXCEEDED = "token_budget_exceeded"  # nosec B105
     INVALID_LLM_OUTPUT = "invalid_llm_output"
     MISSING_CPIC_CITATION = "missing_cpic_citation"
     UNKNOWN_DRUG_NAME = "unknown_drug_name"

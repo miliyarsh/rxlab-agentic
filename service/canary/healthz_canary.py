@@ -27,7 +27,7 @@ def handler(event: dict[str, Any], context: object) -> dict[str, Any]:
     success = 0.0
     try:
         req = urllib.request.Request(f"{api_url}/healthz", method="GET")
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
             body = json.loads(resp.read())
             if resp.status == 200 and body.get("status") == "ok":
                 success = 1.0
