@@ -55,7 +55,7 @@ jobs:
 
       - name: Trivy scan (optional)
         continue-on-error: true
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.36.0
         with:
           image-ref: rxlab-analyzer:ci
           severity: CRITICAL,HIGH

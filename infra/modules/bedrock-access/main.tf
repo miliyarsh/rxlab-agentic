@@ -9,10 +9,10 @@
 ###############################################################################
 
 locals {
-  base_tags            = merge({ Project = "rxlab", Component = "bedrock-access" }, var.tags)
-  is_inference_profile = can(regex("^(us|global|eu)\\.", var.model_id))
-  foundation_model_id  = local.is_inference_profile ? join(".", slice(split(".", var.model_id), 1, length(split(".", var.model_id)))) : var.model_id
-  foundation_model_arn = "arn:aws:bedrock:${var.region}::foundation-model/${local.foundation_model_id}"
+  base_tags             = merge({ Project = "rxlab", Component = "bedrock-access" }, var.tags)
+  is_inference_profile  = can(regex("^(us|global|eu)\\.", var.model_id))
+  foundation_model_id   = local.is_inference_profile ? join(".", slice(split(".", var.model_id), 1, length(split(".", var.model_id)))) : var.model_id
+  foundation_model_arn  = "arn:aws:bedrock:${var.region}::foundation-model/${local.foundation_model_id}"
   inference_profile_arn = local.is_inference_profile ? "arn:aws:bedrock:${var.region}:${data.aws_caller_identity.current.account_id}:inference-profile/${var.model_id}" : null
   # US system inference profiles route across these regions; IAM must allow each foundation-model ARN.
   us_profile_regions = ["us-east-1", "us-east-2", "us-west-2"]

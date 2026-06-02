@@ -35,9 +35,9 @@ module "agent_summarizer" {
 
   function_name      = "${local.name_prefix}-summarizer"
   handler            = "service.agents.summarizer.handler.handler"
-  package_zip_path = local.service_zip_path
-  source_code_hash = local.service_source_code_hash
-  depends_on       = [terraform_data.service_package]
+  package_zip_path   = local.service_zip_path
+  source_code_hash   = local.service_source_code_hash
+  depends_on         = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = 90
   memory_size        = 512
@@ -91,9 +91,9 @@ module "agent_critic" {
 
   function_name      = "${local.name_prefix}-critic"
   handler            = "service.agents.critic.handler.handler"
-  package_zip_path = local.service_zip_path
-  source_code_hash = local.service_source_code_hash
-  depends_on       = [terraform_data.service_package]
+  package_zip_path   = local.service_zip_path
+  source_code_hash   = local.service_source_code_hash
+  depends_on         = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = 90
   memory_size        = 512

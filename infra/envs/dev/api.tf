@@ -77,9 +77,9 @@ module "api_get_job" {
 
   function_name      = "${local.name_prefix}-get-job"
   handler            = local.api_lambdas.get_job.handler
-  package_zip_path = local.service_zip_path
-  source_code_hash = local.service_source_code_hash
-  depends_on       = [terraform_data.service_package]
+  package_zip_path   = local.service_zip_path
+  source_code_hash   = local.service_source_code_hash
+  depends_on         = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = local.api_lambdas.get_job.timeout
   log_retention_days = var.log_retention_days
@@ -108,9 +108,9 @@ module "api_get_report" {
 
   function_name      = "${local.name_prefix}-get-report"
   handler            = local.api_lambdas.get_report.handler
-  package_zip_path = local.service_zip_path
-  source_code_hash = local.service_source_code_hash
-  depends_on       = [terraform_data.service_package]
+  package_zip_path   = local.service_zip_path
+  source_code_hash   = local.service_source_code_hash
+  depends_on         = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = local.api_lambdas.get_report.timeout
   log_retention_days = var.log_retention_days
@@ -182,9 +182,9 @@ module "api_healthz" {
 
   function_name      = "${local.name_prefix}-healthz"
   handler            = local.api_lambdas.healthz.handler
-  package_zip_path = local.service_zip_path
-  source_code_hash = local.service_source_code_hash
-  depends_on       = [terraform_data.service_package]
+  package_zip_path   = local.service_zip_path
+  source_code_hash   = local.service_source_code_hash
+  depends_on         = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = local.api_lambdas.healthz.timeout
   log_retention_days = var.log_retention_days

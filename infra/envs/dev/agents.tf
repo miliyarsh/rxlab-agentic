@@ -7,9 +7,9 @@ module "agent_intake" {
 
   function_name      = "${local.name_prefix}-intake"
   handler            = "service.agents.intake.handler.handler"
-  package_zip_path = local.service_zip_path
-  source_code_hash = local.service_source_code_hash
-  depends_on       = [terraform_data.service_package]
+  package_zip_path   = local.service_zip_path
+  source_code_hash   = local.service_source_code_hash
+  depends_on         = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = 60
   memory_size        = 512
@@ -96,9 +96,9 @@ module "agent_fhir_composer" {
 
   function_name      = "${local.name_prefix}-fhir-composer"
   handler            = "service.agents.fhir_composer.handler.handler"
-  package_zip_path = local.service_zip_path
-  source_code_hash = local.service_source_code_hash
-  depends_on       = [terraform_data.service_package]
+  package_zip_path   = local.service_zip_path
+  source_code_hash   = local.service_source_code_hash
+  depends_on         = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = 60
   memory_size        = 512

@@ -46,7 +46,9 @@ def _validate_vcf_bytes(raw: bytes) -> None:
     except UnicodeDecodeError as err:
         raise ValidationError("uploaded VCF must be UTF-8 text", cause=err) from err
     if not _VCF_HEADER_PATTERN.search(text):
-        raise ValidationError("uploaded file does not look like a VCF (missing ##fileformat or #CHROM header)")
+        raise ValidationError(
+            "uploaded file does not look like a VCF (missing ##fileformat or #CHROM header)"
+        )
 
 
 def handler(event: dict[str, Any], context: object) -> dict[str, Any]:

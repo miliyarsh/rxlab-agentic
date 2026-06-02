@@ -7,9 +7,9 @@ module "canary_healthz" {
 
   function_name      = "${local.name_prefix}-healthz-canary"
   handler            = "service.canary.healthz_canary.handler"
-  package_zip_path = local.service_zip_path
-  source_code_hash = local.service_source_code_hash
-  depends_on       = [terraform_data.service_package]
+  package_zip_path   = local.service_zip_path
+  source_code_hash   = local.service_source_code_hash
+  depends_on         = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = 30
   memory_size        = 128
