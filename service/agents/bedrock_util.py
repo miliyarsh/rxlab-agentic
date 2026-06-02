@@ -14,7 +14,7 @@ from botocore.exceptions import ClientError
 from service.common.errors import PipelineError
 from service.common.models import FailureReason
 
-DEFAULT_BEDROCK_MODEL_ID = "anthropic.claude-haiku-4-5-20251001-v1:0"
+DEFAULT_BEDROCK_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 
 @dataclass(frozen=True)

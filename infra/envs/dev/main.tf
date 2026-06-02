@@ -5,6 +5,7 @@
 locals {
   name_prefix = "rxlab-${var.environment}"
   account_id  = data.aws_caller_identity.current.account_id
+  repo_root   = abspath("${path.module}/${var.repo_root}")
 }
 
 module "kms" {
@@ -12,6 +13,7 @@ module "kms" {
 
   alias       = "${local.name_prefix}/data"
   description = "RxLab ${var.environment} data encryption key"
+  region      = var.region
 }
 
 module "reports_bucket" {

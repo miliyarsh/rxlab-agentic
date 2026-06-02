@@ -10,7 +10,8 @@ IMAGE="${ECR_URL}:${TAG}"
 REGION="${AWS_REGION:-us-east-1}"
 
 echo "Building ${IMAGE} ..."
-docker build -f service/agents/analyzer/Dockerfile -t "${IMAGE}" .
+docker build --provenance=false --sbom=false --platform linux/amd64 \
+  -f service/agents/analyzer/Dockerfile -t "${IMAGE}" .
 
 echo "Logging in to ECR ..."
 aws ecr get-login-password --region "${REGION}" \

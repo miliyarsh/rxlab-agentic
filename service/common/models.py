@@ -108,6 +108,16 @@ class SubmitJobResponse(_StrictModel):
     status: Literal["pending"]
 
 
+class UploadVcfRequest(_StrictModel):
+    filename: str = Field(min_length=5, max_length=128, pattern=r"^[\w.-]+\.vcf$")
+    content_base64: str = Field(min_length=4, max_length=7_000_000)
+
+
+class UploadVcfResponse(_StrictModel):
+    vcf_url: str = Field(pattern=S3_URL_PATTERN, max_length=1024)
+    object_key: str = Field(min_length=1, max_length=512)
+
+
 class GetJobResponse(_StrictModel):
     job_id: JobId
     status: JobStatus

@@ -36,6 +36,16 @@ variable "enable_key_rotation" {
   }
 }
 
+variable "region" {
+  description = "AWS region (used for CloudWatch Logs service principal and encryption context)."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z]{2}-[a-z]+-[0-9]$", var.region))
+    error_message = "region must look like `us-east-1`."
+  }
+}
+
 variable "additional_key_users" {
   description = "Additional IAM principal ARNs that may perform encrypt/decrypt operations with this key. Each must be a fully-qualified IAM ARN (no wildcards)."
   type        = list(string)

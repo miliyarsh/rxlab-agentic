@@ -106,7 +106,7 @@ resource "aws_apigatewayv2_route" "this" {
 resource "aws_lambda_permission" "invoke" {
   for_each = local.parsed_routes
 
-  statement_id  = "AllowAPIGatewayInvoke-${replace(replace(each.key, " ", "-"), "/", "-")}"
+  statement_id  = "AllowAPIGatewayInvoke-${replace(replace(replace(replace(each.key, " ", "-"), "/", "-"), "{", ""), "}", "")}"
   action        = "lambda:InvokeFunction"
   function_name = each.value.lambda_function_name
   principal     = "apigateway.amazonaws.com"

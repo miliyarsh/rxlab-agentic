@@ -37,13 +37,13 @@ variable "alert_email" {
 variable "bedrock_model_id" {
   description = "Pinned Bedrock foundation model id (used by bedrock-access in C9+)."
   type        = string
-  default     = "anthropic.claude-haiku-4-5-20251001-v1:0"
+  default     = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 }
 
-variable "service_source_dir" {
-  description = "Path to the Python service package root, relative to this env directory."
+variable "repo_root" {
+  description = "Path to the repository root, relative to this env directory."
   type        = string
-  default     = "../../../service"
+  default     = "../../.."
 }
 
 variable "log_retention_days" {

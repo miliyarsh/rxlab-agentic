@@ -39,6 +39,14 @@ def path_parameter(event: dict[str, Any], name: str) -> str:
     return str(value)
 
 
+def query_parameter(event: dict[str, Any], name: str) -> str | None:
+    params = event.get("queryStringParameters") or {}
+    value = params.get(name)
+    if value is None or value == "":
+        return None
+    return str(value)
+
+
 def header_value(event: dict[str, Any], name: str) -> str | None:
     headers = event.get("headers") or {}
     for key, value in headers.items():

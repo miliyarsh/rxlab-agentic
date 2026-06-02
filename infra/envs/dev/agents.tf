@@ -6,8 +6,10 @@ module "agent_intake" {
   source = "../../modules/lambda-fn"
 
   function_name      = "${local.name_prefix}-intake"
-  handler            = "agents.intake.handler.handler"
-  source_dir         = abspath("${path.module}/${var.service_source_dir}")
+  handler            = "service.agents.intake.handler.handler"
+  package_zip_path = local.service_zip_path
+  source_code_hash = local.service_source_code_hash
+  depends_on       = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = 60
   memory_size        = 512
@@ -93,8 +95,10 @@ module "agent_fhir_composer" {
   source = "../../modules/lambda-fn"
 
   function_name      = "${local.name_prefix}-fhir-composer"
-  handler            = "agents.fhir_composer.handler.handler"
-  source_dir         = abspath("${path.module}/${var.service_source_dir}")
+  handler            = "service.agents.fhir_composer.handler.handler"
+  package_zip_path = local.service_zip_path
+  source_code_hash = local.service_source_code_hash
+  depends_on       = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = 60
   memory_size        = 512

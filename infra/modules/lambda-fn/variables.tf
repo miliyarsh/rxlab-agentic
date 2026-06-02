@@ -29,8 +29,13 @@ variable "runtime" {
   }
 }
 
-variable "source_dir" {
-  description = "Absolute or module-relative path to the handler source directory to zip and upload."
+variable "package_zip_path" {
+  description = "Absolute path to the shared Lambda deployment zip (service/ + dependencies)."
+  type        = string
+}
+
+variable "source_code_hash" {
+  description = "Base64-encoded SHA256 of deployment package contents (used to detect code changes)."
   type        = string
 }
 

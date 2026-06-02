@@ -25,12 +25,6 @@ locals {
   ])
 }
 
-data "archive_file" "zip" {
-  type        = "zip"
-  source_dir  = var.source_dir
-  output_path = "${path.module}/.terraform/${var.function_name}.zip"
-}
-
 data "aws_iam_policy_document" "assume_role" {
   statement {
     sid     = "LambdaAssumeRole"
@@ -135,8 +129,8 @@ resource "aws_lambda_function" "this" {
   timeout                        = var.timeout_seconds
   reserved_concurrent_executions = var.reserved_concurrent_executions
 
-  filename         = data.archive_file.zip.output_path
-  source_code_hash = data.archive_file.zip.output_base64sha256
+  filename         = var.package_zip_path
+  source_code_hash = var.source_code_hash
 
   kms_key_arn = var.kms_key_arn
 

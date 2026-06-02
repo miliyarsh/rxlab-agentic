@@ -34,8 +34,10 @@ module "agent_summarizer" {
   source = "../../modules/lambda-fn"
 
   function_name      = "${local.name_prefix}-summarizer"
-  handler            = "agents.summarizer.handler.handler"
-  source_dir         = abspath("${path.module}/${var.service_source_dir}")
+  handler            = "service.agents.summarizer.handler.handler"
+  package_zip_path = local.service_zip_path
+  source_code_hash = local.service_source_code_hash
+  depends_on       = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = 90
   memory_size        = 512
@@ -88,8 +90,10 @@ module "agent_critic" {
   source = "../../modules/lambda-fn"
 
   function_name      = "${local.name_prefix}-critic"
-  handler            = "agents.critic.handler.handler"
-  source_dir         = abspath("${path.module}/${var.service_source_dir}")
+  handler            = "service.agents.critic.handler.handler"
+  package_zip_path = local.service_zip_path
+  source_code_hash = local.service_source_code_hash
+  depends_on       = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = 90
   memory_size        = 512
@@ -146,10 +150,10 @@ module "bedrock_access" {
   model_id    = var.bedrock_model_id
   region      = var.region
 
-  attach_role_arns = [
-    module.agent_summarizer.role_arn,
-    module.agent_critic.role_arn,
-  ]
+  attach_role_arns = {
+    summarizer = module.agent_summarizer.role_arn
+    critic     = module.agent_critic.role_arn
+  }
 }
 
 module "alerts" {

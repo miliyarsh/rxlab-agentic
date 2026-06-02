@@ -9,18 +9,21 @@ variable "policy_name" {
 }
 
 variable "model_id" {
-  description = "Bedrock foundation model identifier. Must be fully qualified (no '*' wildcards). Default is Claude Haiku 4.5."
+  description = "Bedrock model or inference profile identifier (no '*' wildcards). Use a US inference profile for on-demand invoke."
   type        = string
-  default     = "anthropic.claude-haiku-4-5-20251001-v1:0"
+  default     = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
   validation {
     condition     = !strcontains(var.model_id, "*")
-    error_message = "model_id must not contain wildcards; pin to an exact model version."
+    error_message = "model_id must not contain wildcards; pin to an exact model or inference profile."
   }
 
   validation {
-    condition     = can(regex("^[a-z0-9.-]+\\.[a-z0-9.:-]+$", var.model_id))
-    error_message = "model_id must look like `anthropic.claude-haiku-4-5-20251001-v1:0`."
+    condition = (
+      can(regex("^(us|global|eu)\\.[a-z0-9.-]+\\.[a-z0-9.:-]+$", var.model_id)) ||
+      can(regex("^[a-z0-9.-]+\\.[a-z0-9.:-]+$", var.model_id))
+    )
+    error_message = "model_id must be a foundation model (anthropic.claude-...) or inference profile (us.anthropic.claude-...)."
   }
 }
 
@@ -35,8 +38,8 @@ variable "region" {
 }
 
 variable "attach_role_arns" {
-  description = "IAM role ARNs that receive the Bedrock invoke policy. Each must be a fully-qualified IAM role ARN."
-  type        = list(string)
+  description = "Map of logical name -> IAM role ARN for Bedrock invoke policy attachments. Keys must be static (known at plan time)."
+  type        = map(string)
 
   validation {
     condition     = length(var.attach_role_arns) > 0
@@ -45,10 +48,10 @@ variable "attach_role_arns" {
 
   validation {
     condition = alltrue([
-      for r in var.attach_role_arns :
+      for r in values(var.attach_role_arns) :
       can(regex("^arn:aws:iam::[0-9]{12}:role/.+$", r))
     ])
-    error_message = "Every attach_role_arns entry must be a fully-qualified IAM role ARN."
+    error_message = "Every attach_role_arns value must be a fully-qualified IAM role ARN."
   }
 }
 

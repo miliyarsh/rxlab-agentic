@@ -9,8 +9,9 @@ Base URL: Terraform output `api_url` (alias: `api_endpoint`) from the single sta
 | Method | Path | Status | Description |
 | --- | --- | --- | --- |
 | `POST` | `/jobs` | `202` | Submit a VCF for analysis. Returns `job_id` with `status=pending`. |
+| `POST` | `/uploads/vcf` | `201` | Upload a local VCF file (base64 body) to the reports bucket; returns `vcf_url` for job submission. |
 | `GET` | `/jobs/{job_id}` | `200` | Poll job status, current pipeline step, and whether a report is ready. |
-| `GET` | `/jobs/{job_id}/report` | `200` | Presigned S3 URL for the FHIR Bundle (TTL from `presigned_url_ttl_seconds`). |
+| `GET` | `/jobs/{job_id}/report` | `200` | Presigned S3 URL for the FHIR Bundle, or inline bundle JSON with `?include=bundle`. |
 | `GET` | `/healthz` | `200` | Liveness probe (`{"status":"ok"}`). Used by the scheduled canary. |
 
 ## Auth
@@ -40,6 +41,30 @@ Base URL: Terraform output `api_url` (alias: `api_endpoint`) from the single sta
 
 The Step Functions pipeline runs asynchronously: Intake → Analyzer → FHIR Composer → Summarizer → Critic. Job `status` becomes `succeeded` only when the Critic approves and patches the Bundle with the clinician summary.
 
+## POST /uploads/vcf
+
+Upload a VCF from a client (e.g. the React test console) into the reports bucket before submitting a job.
+
+**Request body**
+
+```json
+{
+  "filename": "my-sample.vcf",
+  "content_base64": "<base64-encoded UTF-8 VCF text>"
+}
+```
+
+**Response (`201`)**
+
+```json
+{
+  "vcf_url": "s3://rxlab-reports-dev-123456789012/uploads/abc123/my-sample.vcf",
+  "object_key": "uploads/abc123/my-sample.vcf"
+}
+```
+
+Pass the returned `vcf_url` to `POST /jobs`. Maximum decoded size is 5 MB. The file must include a valid VCF header (`##fileformat=` or `#CHROM` row).
+
 ## GET /jobs/{job_id}
 
 **Response (`200`)**
@@ -58,7 +83,13 @@ When the Critic rejects a summary, `status` is `failed` and `failure_reason` is 
 
 ## GET /jobs/{job_id}/report
 
-**Response (`200`)**
+**Query parameters**
+
+| Name | Values | Description |
+| --- | --- | --- |
+| `include` | `bundle` | Return the FHIR Bundle JSON inline (for browser UIs; avoids S3 CORS). |
+
+**Response (`200`) — default**
 
 ```json
 {
@@ -66,6 +97,12 @@ When the Critic rejects a summary, `status` is `failed` and `failure_reason` is 
   "expires_in_seconds": 900
 }
 ```
+
+Presigned URLs use **AWS Signature Version 4** (required for SSE-KMS objects in the reports bucket).
+
+**Response (`200`) — `?include=bundle`**
+
+Returns the FHIR R4 Bundle document directly (same object stored at `{job_id}/bundle.json` in the reports bucket).
 
 Returns `404` if the job has not succeeded or the bundle is not yet available.
 

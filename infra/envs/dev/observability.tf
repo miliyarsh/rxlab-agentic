@@ -6,8 +6,10 @@ module "canary_healthz" {
   source = "../../modules/lambda-fn"
 
   function_name      = "${local.name_prefix}-healthz-canary"
-  handler            = "canary.healthz_canary.handler"
-  source_dir         = abspath("${path.module}/${var.service_source_dir}")
+  handler            = "service.canary.healthz_canary.handler"
+  package_zip_path = local.service_zip_path
+  source_code_hash = local.service_source_code_hash
+  depends_on       = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = 30
   memory_size        = 128
@@ -37,6 +39,7 @@ locals {
     module.api_submit_job.function_name,
     module.api_get_job.function_name,
     module.api_get_report.function_name,
+    module.api_upload_vcf.function_name,
     module.api_healthz.function_name,
     module.agent_intake.function_name,
     module.agent_analyzer.function_name,

@@ -5,19 +5,23 @@
 locals {
   api_lambdas = {
     submit_job = {
-      handler = "api.submit_job.handler.handler"
+      handler = "service.api.submit_job.handler.handler"
       timeout = 30
     }
     get_job = {
-      handler = "api.get_job.handler.handler"
+      handler = "service.api.get_job.handler.handler"
       timeout = 15
     }
     get_report = {
-      handler = "api.get_report.handler.handler"
+      handler = "service.api.get_report.handler.handler"
       timeout = 15
     }
+    upload_vcf = {
+      handler = "service.api.upload_vcf.handler.handler"
+      timeout = 30
+    }
     healthz = {
-      handler = "api.healthz.handler.handler"
+      handler = "service.api.healthz.handler.handler"
       timeout = 10
     }
   }
@@ -28,7 +32,9 @@ module "api_submit_job" {
 
   function_name      = "${local.name_prefix}-submit-job"
   handler            = local.api_lambdas.submit_job.handler
-  source_dir         = abspath("${path.module}/${var.service_source_dir}")
+  package_zip_path   = local.service_zip_path
+  source_code_hash   = local.service_source_code_hash
+  depends_on         = [terraform_data.service_package, module.pipeline]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = local.api_lambdas.submit_job.timeout
   log_retention_days = var.log_retention_days
@@ -64,7 +70,6 @@ module "api_submit_job" {
     },
   ]
 
-  depends_on = [module.pipeline]
 }
 
 module "api_get_job" {
@@ -72,7 +77,9 @@ module "api_get_job" {
 
   function_name      = "${local.name_prefix}-get-job"
   handler            = local.api_lambdas.get_job.handler
-  source_dir         = abspath("${path.module}/${var.service_source_dir}")
+  package_zip_path = local.service_zip_path
+  source_code_hash = local.service_source_code_hash
+  depends_on       = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = local.api_lambdas.get_job.timeout
   log_retention_days = var.log_retention_days
@@ -101,7 +108,9 @@ module "api_get_report" {
 
   function_name      = "${local.name_prefix}-get-report"
   handler            = local.api_lambdas.get_report.handler
-  source_dir         = abspath("${path.module}/${var.service_source_dir}")
+  package_zip_path = local.service_zip_path
+  source_code_hash = local.service_source_code_hash
+  depends_on       = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = local.api_lambdas.get_report.timeout
   log_retention_days = var.log_retention_days
@@ -135,12 +144,47 @@ module "api_get_report" {
   ]
 }
 
+module "api_upload_vcf" {
+  source = "../../modules/lambda-fn"
+
+  function_name      = "${local.name_prefix}-upload-vcf"
+  handler            = local.api_lambdas.upload_vcf.handler
+  package_zip_path   = local.service_zip_path
+  source_code_hash   = local.service_source_code_hash
+  depends_on         = [terraform_data.service_package]
+  kms_key_arn        = module.kms.key_arn
+  timeout_seconds    = local.api_lambdas.upload_vcf.timeout
+  log_retention_days = var.log_retention_days
+
+  environment_variables = {
+    ENVIRONMENT    = var.environment
+    REPORTS_BUCKET = module.reports_bucket.bucket_id
+  }
+
+  iam_policy_statements = [
+    {
+      sid = "WriteUploadedVcf"
+      actions = [
+        "s3:PutObject",
+      ]
+      resources = ["${module.reports_bucket.bucket_arn}/uploads/*"]
+    },
+    {
+      sid       = "UseDataKey"
+      actions   = ["kms:Encrypt", "kms:GenerateDataKey"]
+      resources = [module.kms.key_arn]
+    },
+  ]
+}
+
 module "api_healthz" {
   source = "../../modules/lambda-fn"
 
   function_name      = "${local.name_prefix}-healthz"
   handler            = local.api_lambdas.healthz.handler
-  source_dir         = abspath("${path.module}/${var.service_source_dir}")
+  package_zip_path = local.service_zip_path
+  source_code_hash = local.service_source_code_hash
+  depends_on       = [terraform_data.service_package]
   kms_key_arn        = module.kms.key_arn
   timeout_seconds    = local.api_lambdas.healthz.timeout
   log_retention_days = var.log_retention_days
@@ -175,6 +219,11 @@ module "api" {
       lambda_invoke_arn    = module.api_get_report.invoke_arn
       lambda_function_name = module.api_get_report.function_name
     }
+    "POST /uploads/vcf" = {
+      lambda_arn           = module.api_upload_vcf.function_arn
+      lambda_invoke_arn    = module.api_upload_vcf.invoke_arn
+      lambda_function_name = module.api_upload_vcf.function_name
+    }
     "GET /healthz" = {
       lambda_arn           = module.api_healthz.function_arn
       lambda_invoke_arn    = module.api_healthz.invoke_arn
@@ -186,6 +235,7 @@ module "api" {
     module.api_submit_job,
     module.api_get_job,
     module.api_get_report,
+    module.api_upload_vcf,
     module.api_healthz,
   ]
 }
