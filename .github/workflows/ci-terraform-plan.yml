@@ -20,7 +20,7 @@ jobs:
     env:
       TF_ENV: infra/envs/dev
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: hashicorp/setup-terraform@v3
         with:
